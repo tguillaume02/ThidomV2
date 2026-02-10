@@ -1,0 +1,308 @@
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.core.websocket import manager
+from app.models.device import Device
+from app.models.plugin import Plugin
+from app.models.user import User
+from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceResponse, DeviceStateUpdate, DeviceAction
+from app.plugins.registry import PluginRegistry
+from app.plugins.telegram_plugin import send_telegram_message
+from app.services.log_service import create_log
+from app.services.scenario_engine import scenario_engine
+import logging
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+async def _notify_state_change(device_name: str, state: dict):
+    """Send a Telegram notification for a device state change (background task)."""
+    changes = ", ".join(f"{k}={v}" for k, v in state.items())
+    await send_telegram_message(f"🏠 ThiDom — {device_name}\nChangement d'etat: {changes}")
+
+
+def _evaluate_thermostat_hysteresis(device: Device, current_temp: float | None = None) -> dict | None:
+    """
+    Evaluate thermostat hysteresis and return state changes if needed.
+    Returns a dict with 'heating' and optionally 'power' keys, or None if no change.
+
+    Logic:
+    - If current_temp <= target - hysteresis → heating = True, power = "on"
+    - If current_temp >= target + hysteresis → heating = False, power = "off"
+    - Otherwise → no change (within hysteresis band)
+    """
+    if device.device_type != "thermostat":
+        return None
+
+    hysteresis = device.hysteresis
+    if hysteresis is None or hysteresis <= 0:
+        return None
+
+    state = device.state or {}
+    target = state.get("target_temperature")
+    if target is None:
+        return None
+
+    # Resolve current temperature
+    if current_temp is None:
+        current_temp = state.get("temperature")
+    if current_temp is None:
+        return None
+
+    try:
+        target = float(target)
+        current_temp = float(current_temp)
+    except (ValueError, TypeError):
+        return None
+
+    current_heating = state.get("heating")
+
+    if current_temp <= target - hysteresis:
+        # Too cold → must heat
+        if current_heating is not True:
+            logger.info(
+                f"Thermostat '{device.name}': {current_temp}°C <= {target - hysteresis}°C (target {target} - hyst {hysteresis}) → heating ON"
+            )
+            return {"heating": True, "power": "on"}
+    elif current_temp >= target + hysteresis:
+        # Warm enough → stop heating
+        if current_heating is not False:
+            logger.info(
+                f"Thermostat '{device.name}': {current_temp}°C >= {target + hysteresis}°C (target {target} + hyst {hysteresis}) → heating OFF"
+            )
+            return {"heating": False, "power": "off"}
+
+    return None
+
+
+async def _apply_thermostat_logic(device: Device, db: AsyncSession):
+    """Apply hysteresis logic after a state update on a thermostat device."""
+    changes = _evaluate_thermostat_hysteresis(device)
+    if changes:
+        device.state = {**(device.state or {}), **changes}
+        await db.commit()
+        await db.refresh(device)
+        await manager.broadcast_device_state(device.id, device.state)
+
+
+async def _check_linked_thermostat(sensor_device: Device, db: AsyncSession):
+    """
+    When a sensor's temperature changes, check if any thermostat is linked to it
+    and re-evaluate hysteresis.
+    """
+    temp = (sensor_device.state or {}).get("temperature")
+    if temp is None:
+        return
+
+    # Find thermostats linked to this sensor
+    result = await db.execute(
+        select(Device).where(
+            Device.linked_sensor_id == sensor_device.id,
+            Device.device_type == "thermostat"
+        )
+    )
+    thermostats = result.scalars().all()
+
+    for thermostat in thermostats:
+        changes = _evaluate_thermostat_hysteresis(thermostat, current_temp=float(temp))
+        if changes:
+            thermostat.state = {**(thermostat.state or {}), **changes}
+            await manager.broadcast_device_state(thermostat.id, thermostat.state)
+
+    if thermostats:
+        await db.commit()
+
+
+@router.get("/", response_model=List[DeviceResponse])
+async def get_devices(room_id: int = None, db: AsyncSession = Depends(get_db)):
+    query = select(Device)
+    if room_id:
+        query = query.where(Device.room_id == room_id)
+    result = await db.execute(query.order_by(Device.order))
+    return result.scalars().all()
+
+
+@router.get("/{device_id}", response_model=DeviceResponse)
+async def get_device(device_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return device
+
+
+@router.post("/", response_model=DeviceResponse)
+async def create_device(
+    device_data: DeviceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    device = Device(**device_data.model_dump())
+    db.add(device)
+    await db.commit()
+    await db.refresh(device)
+    await create_log(db, "INFO", "user_action", f"Device '{device.name}' created", user_id=current_user.id, device_id=device.id)
+    return device
+
+
+@router.put("/{device_id}", response_model=DeviceResponse)
+async def update_device(
+    device_id: int,
+    device_data: DeviceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    for key, value in device_data.model_dump(exclude_unset=True).items():
+        setattr(device, key, value)
+
+    await db.commit()
+    await db.refresh(device)
+    await create_log(db, "INFO", "user_action", f"Device '{device.name}' updated", user_id=current_user.id, device_id=device.id)
+    return device
+
+
+@router.delete("/{device_id}")
+async def delete_device(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    name = device.name
+    await db.delete(device)
+    await db.commit()
+    await create_log(db, "INFO", "user_action", f"Device '{name}' deleted", user_id=current_user.id)
+    return {"message": f"Device '{name}' deleted"}
+
+
+@router.put("/{device_id}/state", response_model=DeviceResponse)
+async def update_device_state(
+    device_id: int,
+    state_data: DeviceStateUpdate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    # Get plugin instance
+    plugin_result = await db.execute(select(Plugin).where(Plugin.id == device.plugin_id))
+    plugin_model = plugin_result.scalar_one_or_none()
+    if plugin_model:
+        plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
+        if plugin_instance:
+            new_state = await plugin_instance.set_state(device.config or {}, state_data.state)
+            device.state = new_state
+        else:
+            device.state = {**(device.state or {}), **state_data.state}
+    else:
+        device.state = {**(device.state or {}), **state_data.state}
+
+    await db.commit()
+    await db.refresh(device)
+
+    # Broadcast state update via WebSocket
+    await manager.broadcast_device_state(device.id, device.state)
+
+    # Thermostat hysteresis logic
+    if device.device_type == "thermostat":
+        await _apply_thermostat_logic(device, db)
+    elif device.device_type == "sensor":
+        await _check_linked_thermostat(device, db)
+
+    # Scenario triggers
+    background_tasks.add_task(
+        scenario_engine.on_device_state_changed, device.id, device.state
+    )
+
+    # Telegram notification
+    if device.notify_on_state_change:
+        background_tasks.add_task(_notify_state_change, device.name, state_data.state)
+
+    return device
+
+
+@router.post("/{device_id}/action", response_model=DeviceResponse)
+async def execute_device_action(
+    device_id: int,
+    action_data: DeviceAction,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    plugin_result = await db.execute(select(Plugin).where(Plugin.id == device.plugin_id))
+    plugin_model = plugin_result.scalar_one_or_none()
+
+    new_state = None
+
+    if plugin_model:
+        plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
+        if plugin_instance:
+            try:
+                action_result = await plugin_instance.execute_action(
+                    device.config or {}, action_data.action, action_data.params
+                )
+                if action_result:
+                    new_state = action_result
+            except Exception:
+                new_state = None
+
+    # Fallback: apply action directly on state if plugin didn't return a result
+    if not new_state:
+        current_state = dict(device.state or {})
+        if action_data.action == "turn_on":
+            current_state["power"] = "on"
+        elif action_data.action == "turn_off":
+            current_state["power"] = "off"
+        elif action_data.action == "toggle":
+            current_state["power"] = "off" if current_state.get("power") == "on" else "on"
+        elif action_data.params:
+            current_state.update(action_data.params)
+        new_state = current_state
+
+    device.state = {**(device.state or {}), **new_state}
+    await db.commit()
+    await db.refresh(device)
+    await manager.broadcast_device_state(device.id, device.state)
+
+    # Thermostat hysteresis logic after action
+    if device.device_type == "thermostat":
+        await _apply_thermostat_logic(device, db)
+
+    # Scenario triggers
+    background_tasks.add_task(
+        scenario_engine.on_device_state_changed, device.id, device.state
+    )
+
+    # Telegram notification
+    if device.notify_on_state_change:
+        background_tasks.add_task(_notify_state_change, device.name, new_state)
+
+    await create_log(
+        db, "INFO", "user_action",
+        f"Action '{action_data.action}' on device '{device.name}'",
+        user_id=current_user.id, device_id=device.id,
+        details={"action": action_data.action, "params": action_data.params}
+    )
+    return device

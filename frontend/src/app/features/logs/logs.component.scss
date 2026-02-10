@@ -1,0 +1,125 @@
+.filters-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  .filter-field {
+    min-width: 180px;
+  }
+}
+
+.logs-table-card {
+  .logs-list {
+    max-height: calc(100vh - 320px);
+    overflow-y: auto;
+  }
+
+  .log-entry {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid var(--thidom-border);
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .log-icon {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon {
+        font-size: 20px;
+      }
+    }
+
+    &.level-error .log-icon mat-icon { color: #f44336; }
+    &.level-warning .log-icon mat-icon { color: #ff9800; }
+    &.level-info .log-icon mat-icon { color: #42a5f5; }
+    &.level-debug .log-icon mat-icon { color: #9e9e9e; }
+
+    .log-content {
+      flex: 1;
+      min-width: 0;
+
+      .log-header-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+
+        .level-chip {
+          font-size: 0.7rem;
+          min-height: 22px;
+
+          &.level-error { background: rgba(244, 67, 54, 0.15) !important; color: #f44336 !important; }
+          &.level-warning { background: rgba(255, 152, 0, 0.15) !important; color: #ff9800 !important; }
+          &.level-info { background: rgba(66, 165, 245, 0.15) !important; color: #42a5f5 !important; }
+          &.level-debug { background: rgba(158, 158, 158, 0.15) !important; color: #9e9e9e !important; }
+        }
+
+        .log-source {
+          font-size: 0.8rem;
+          color: var(--thidom-green);
+        }
+
+        .log-time {
+          font-size: 0.75rem;
+          color: var(--thidom-text-secondary);
+          margin-left: auto;
+        }
+      }
+
+      .log-message {
+        font-size: 0.9rem;
+        color: var(--thidom-text-primary);
+        margin: 0;
+        line-height: 1.4;
+      }
+
+      .log-details {
+        margin-top: 8px;
+
+        summary {
+          font-size: 0.8rem;
+          color: var(--thidom-text-secondary);
+          cursor: pointer;
+
+          &:hover { color: var(--thidom-green); }
+        }
+
+        pre {
+          font-size: 0.8rem;
+          color: var(--thidom-text-secondary);
+          background: rgba(0, 0, 0, 0.2);
+          padding: 8px;
+          border-radius: 4px;
+          overflow-x: auto;
+          margin-top: 4px;
+        }
+      }
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--thidom-text-secondary);
+
+  mat-icon {
+    font-size: 3rem;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  p { font-size: 1.1rem; color: var(--thidom-text-primary); }
+}

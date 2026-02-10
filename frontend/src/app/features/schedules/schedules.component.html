@@ -1,0 +1,155 @@
+<div class="page-container fade-in">
+  <div class="page-header">
+    <h1>Planification</h1>
+    <div class="header-actions">
+      <mat-button-toggle-group [(ngModel)]="viewMode" class="view-toggle">
+        <mat-button-toggle value="list" matTooltip="Vue liste">
+          <mat-icon>view_list</mat-icon>
+        </mat-button-toggle>
+        <mat-button-toggle value="calendar" matTooltip="Vue calendrier">
+          <mat-icon>calendar_month</mat-icon>
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+      <button mat-raised-button color="primary" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Nouvelle planification
+      </button>
+    </div>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <!-- Calendar View -->
+  @if (viewMode === 'calendar') {
+    <div class="calendar-container">
+      <div class="calendar-header">
+        <button mat-icon-button (click)="prevMonth()">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <span class="month-label">{{ getMonthLabel() }}</span>
+        <button mat-icon-button (click)="nextMonth()">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+        <button mat-stroked-button class="today-btn" (click)="goToday()">Aujourd'hui</button>
+      </div>
+
+      <div class="calendar-grid">
+        <div class="calendar-weekdays">
+          @for (day of weekDays; track day) {
+            <div class="weekday-label">{{ day }}</div>
+          }
+        </div>
+        @for (week of calendarWeeks; track $index) {
+          <div class="calendar-week">
+            @for (day of week; track day.date) {
+              <div class="calendar-day"
+                   [class.other-month]="!day.isCurrentMonth"
+                   [class.today]="day.isToday"
+                   [class.has-schedules]="day.schedules.length > 0">
+                <span class="day-number">{{ day.day }}</span>
+                @if (day.schedules.length > 0) {
+                  <div class="day-schedules">
+                    @for (s of day.schedules; track s.id) {
+                      <div class="day-schedule-item"
+                           [matTooltip]="s.name + ' - ' + (s.time || '')"
+                           (click)="openEditDialog(s)">
+                        <span class="schedule-dot"></span>
+                        <span class="schedule-label">{{ s.time || '—' }} {{ s.name }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- List View -->
+  @if (viewMode === 'list') {
+    <div class="card-grid">
+      @for (schedule of schedules; track schedule.id) {
+        <div class="thidom-card schedule-card" [class.disabled]="!schedule.enabled">
+          <div class="schedule-header">
+            <div class="schedule-icon" [class.active]="schedule.enabled">
+              <mat-icon>{{ getTypeIcon(schedule.schedule_type) }}</mat-icon>
+            </div>
+            <div class="schedule-info">
+              <span class="schedule-name">{{ schedule.name }}</span>
+              @if (schedule.description) {
+                <span class="schedule-desc">{{ schedule.description }}</span>
+              }
+            </div>
+            <button mat-icon-button [matMenuTriggerFor]="scheduleMenu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #scheduleMenu="matMenu">
+              <button mat-menu-item (click)="openEditDialog(schedule)">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+              <button mat-menu-item (click)="deleteSchedule(schedule)" class="delete-action">
+                <mat-icon>delete</mat-icon> Supprimer
+              </button>
+            </mat-menu>
+          </div>
+
+          <div class="schedule-details">
+            <div class="detail-row">
+              <mat-icon>repeat</mat-icon>
+              <mat-chip>{{ getTypeLabel(schedule.schedule_type) }}</mat-chip>
+            </div>
+
+            @if (schedule.time) {
+              <div class="detail-row">
+                <mat-icon>access_time</mat-icon>
+                <span class="time-value">{{ schedule.time }}</span>
+              </div>
+            }
+
+            @if (schedule.days_of_week && schedule.days_of_week.length > 0) {
+              <div class="detail-row">
+                <mat-icon>calendar_today</mat-icon>
+                <span>{{ getDaysLabel(schedule.days_of_week) }}</span>
+              </div>
+            }
+
+            @if (schedule.cron_expression) {
+              <div class="detail-row">
+                <mat-icon>code</mat-icon>
+                <code>{{ schedule.cron_expression }}</code>
+              </div>
+            }
+
+            <div class="detail-row action-row">
+              <mat-icon>play_circle</mat-icon>
+              <span class="action-summary">{{ formatAction(schedule.action) }}</span>
+            </div>
+          </div>
+
+          <div class="schedule-footer">
+            <div class="footer-dates">
+              <span>Prochaine : {{ formatDate(schedule.next_run) }}</span>
+              <span>Derniere : {{ formatDate(schedule.last_run) }}</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="schedule.enabled"
+              (change)="toggleSchedule(schedule)">
+            </mat-slide-toggle>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (!loading && schedules.length === 0) {
+    <div class="empty-state">
+      <mat-icon>calendar_today</mat-icon>
+      <p>Aucune planification configuree</p>
+      <span>Planifiez des actions automatiques</span>
+    </div>
+  }
+</div>

@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+mat-dialog-content {
+  padding: 8px 24px 16px !important;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.half-width {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.config-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid var(--thidom-border);
+
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--thidom-green);
+    margin-bottom: 16px;
+  }
+}
+
+.thermostat-section-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--thidom-green);
+  margin: 16px 0 8px;
+  display: block;
+}
+
+.toggles-row {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid var(--thidom-border);
+}

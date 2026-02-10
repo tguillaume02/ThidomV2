@@ -1,0 +1,129 @@
+.basic-info {
+  margin-bottom: 16px;
+
+  .full-width {
+    width: 100%;
+  }
+}
+
+.editor-tabs {
+  min-height: 400px;
+}
+
+.blockly-container {
+  margin-top: 16px;
+  position: relative;
+
+  .blockly-workspace {
+    width: 100%;
+    height: 450px;
+    border-radius: 8px;
+    border: 1px solid var(--thidom-border);
+    overflow: hidden;
+  }
+
+  .blockly-overlay {
+    position: absolute;
+    inset: 0;
+    margin-top: 16px;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: var(--thidom-text-secondary);
+
+    mat-icon {
+      font-size: 3rem;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.6;
+    }
+
+    p {
+      font-size: 1rem;
+      color: var(--thidom-text-primary);
+    }
+  }
+}
+
+.sync-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 230, 118, 0.06);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 230, 118, 0.15);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--thidom-green);
+  }
+
+  span {
+    font-size: 0.75rem;
+    color: var(--thidom-text-secondary);
+  }
+}
+
+.json-editor {
+  margin-top: 16px;
+}
+
+.json-section {
+  margin-bottom: 20px;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--thidom-green);
+      margin: 0;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .template-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+
+      .tpl-btn {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        min-height: 28px;
+        line-height: 1;
+      }
+    }
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .code-textarea {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+}

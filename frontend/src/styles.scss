@@ -1,0 +1,123 @@
+// ThiDom Global Styles
+@use '@angular/material' as mat;
+
+// Custom ThiDom Theme
+$thidom-primary: mat.define-palette(mat.$green-palette, 500, 300, 700);
+$thidom-accent: mat.define-palette(mat.$light-green-palette, A400, A200, A700);
+$thidom-warn: mat.define-palette(mat.$red-palette);
+
+$thidom-theme: mat.define-dark-theme((
+  color: (
+    primary: $thidom-primary,
+    accent: $thidom-accent,
+    warn: $thidom-warn,
+  ),
+  typography: mat.define-typography-config(),
+));
+
+@include mat.all-component-themes($thidom-theme);
+
+// CSS Variables
+:root {
+  --thidom-green: #00e676;
+  --thidom-green-dark: #00c853;
+  --thidom-green-light: #69f0ae;
+  --thidom-bg-primary: #1a1a2e;
+  --thidom-bg-secondary: #16213e;
+  --thidom-bg-card: #1e2a47;
+  --thidom-bg-sidebar: #0f1529;
+  --thidom-text-primary: #e0e0e0;
+  --thidom-text-secondary: #9e9e9e;
+  --thidom-border: #2a3a5c;
+  --thidom-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --sidebar-width: 260px;
+}
+
+// Reset & Base
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--thidom-bg-primary);
+  color: var(--thidom-text-primary);
+  overflow: hidden;
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--thidom-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--thidom-green-dark);
+  border-radius: 3px;
+}
+
+// Global utilities
+.page-container {
+  padding: 24px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--thidom-text-primary);
+  }
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.thidom-card {
+  background: var(--thidom-bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--thidom-border);
+  padding: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--thidom-shadow);
+  }
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+
+  &.online { background: var(--thidom-green); }
+  &.offline { background: #f44336; }
+  &.warning { background: #ff9800; }
+}
+
+// Animation
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}

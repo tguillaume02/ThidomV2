@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["plugin-setup-dialog.component.ts"],
+  "sourcesContent": ["\n    .center { display: flex; justify-content: center; padding: 24px; }\n    .no-config { color: #888; text-align: center; padding: 16px; }\n    .form-fields { display: flex; flex-direction: column; gap: 4px; min-width: 420px; }\n    .full-width { width: 100%; }\n    .serial-port-row {\n      display: flex; align-items: flex-start; gap: 4px;\n    }\n    .serial-port-row .flex-grow { flex: 1; }\n    .refresh-btn { margin-top: 8px; }\n    .status-bar {\n      display: flex; align-items: center; gap: 8px;\n      padding: 10px 14px; border-radius: 8px; margin-top: 8px; font-size: 0.9rem;\n    }\n    .status-bar.ok  { background: rgba(76,175,80,.12); color: #2e7d32; }\n    .status-bar.err { background: rgba(244,67,54,.10); color: #c62828; }\n    .inline-spinner { display: inline-block; margin-right: 6px; }\n    mat-dialog-actions { gap: 8px; }\n  "],
+  "mappings": ";AACI,CAAA;AAAU,WAAA;AAAe,mBAAA;AAAyB,WAAA;;AAClD,CAAA;AAAa,SAAA;AAAa,cAAA;AAAoB,WAAA;;AAC9C,CAAA;AAAe,WAAA;AAAe,kBAAA;AAAwB,OAAA;AAAU,aAAA;;AAChE,CAAA;AAAc,SAAA;;AACd,CAAA;AACE,WAAA;AAAe,eAAA;AAAyB,OAAA;;AAE1C,CAHA,gBAGA,CAAA;AAA8B,QAAA;;AAC9B,CAAA;AAAe,cAAA;;AACf,CAAA;AACE,WAAA;AAAe,eAAA;AAAqB,OAAA;AACpC,WAAA,KAAA;AAAoB,iBAAA;AAAoB,cAAA;AAAiB,aAAA;;AAE3D,CAJA,UAIA,CAAA;AAAkB,cAAA,KAAA,EAAA,EAAA,GAAA,EAAA,EAAA,EAAA;AAAiC,SAAA;;AACnD,CALA,UAKA,CAAA;AAAkB,cAAA,KAAA,GAAA,EAAA,EAAA,EAAA,EAAA,EAAA;AAAiC,SAAA;;AACnD,CAAA;AAAkB,WAAA;AAAuB,gBAAA;;AACzC;AAAqB,OAAA;;",
+  "names": []
+}

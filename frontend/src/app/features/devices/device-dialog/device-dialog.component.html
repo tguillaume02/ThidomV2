@@ -1,0 +1,118 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Modifier l\'appareil' : 'Nouvel appareil' }}</h2>
+
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nom</mat-label>
+    <input matInput [(ngModel)]="name" required placeholder="Ex: Lampe salon">
+  </mat-form-field>
+
+  <div class="form-row">
+    <mat-form-field appearance="outline" class="half-width">
+      <mat-label>Pièce</mat-label>
+      <mat-select [(ngModel)]="roomId" required>
+        @for (room of rooms; track room.id) {
+          <mat-option [value]="room.id">
+            <mat-icon>{{ room.icon }}</mat-icon> {{ room.name }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="half-width">
+      <mat-label>Type d'appareil</mat-label>
+      <mat-select [(ngModel)]="deviceType" required>
+        @for (dt of deviceTypes; track dt.value) {
+          <mat-option [value]="dt.value">
+            <mat-icon>{{ dt.icon }}</mat-icon> {{ dt.label }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Plugin</mat-label>
+    <mat-select [(ngModel)]="pluginId" (ngModelChange)="onPluginChange()" required>
+      @for (plugin of plugins; track plugin.id) {
+        <mat-option [value]="plugin.id">
+          <mat-icon>{{ plugin.icon }}</mat-icon> {{ plugin.name }}
+          <small>({{ plugin.category }})</small>
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <!-- Linked sensor for thermostat -->
+  @if (deviceType === 'thermostat') {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Capteur de temperature lie (optionnel)</mat-label>
+      <mat-select [(ngModel)]="linkedSensorId">
+        <mat-option [value]="null">Aucun (utilise le capteur de la piece)</mat-option>
+        @for (sensor of temperatureSensors; track sensor.id) {
+          <mat-option [value]="sensor.id">
+            <mat-icon>sensors</mat-icon> {{ sensor.name }} ({{ sensor.state?.temperature }}°C)
+          </mat-option>
+        }
+      </mat-select>
+      <mat-hint>Si vide, le thermostat utilisera le capteur de temperature de sa piece</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Hysteresis (°C)</mat-label>
+      <input matInput type="number" [(ngModel)]="hysteresis" step="0.1" min="0" max="5" placeholder="Ex: 0.5">
+      <mat-hint>Tolerance avant activation/desactivation du chauffage (ex: 0.5 = ±0.5°C autour de la consigne). Laisser vide pour desactiver.</mat-hint>
+    </mat-form-field>
+  }
+
+  <!-- Dynamic plugin config fields -->
+  @if (configFields.length > 0) {
+    <div class="config-section">
+      <h3>Configuration du plugin</h3>
+      @for (field of configFields; track field.key) {
+        @if (field.enum) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ field.label }}</mat-label>
+            <mat-select [(ngModel)]="config[field.key]">
+              @for (opt of field.enum; track opt) {
+                <mat-option [value]="opt">{{ opt }}</mat-option>
+              }
+            </mat-select>
+            @if (field.description) {
+              <mat-hint>{{ field.description }}</mat-hint>
+            }
+          </mat-form-field>
+        } @else if (field.type === 'integer' || field.type === 'number') {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ field.label }}</mat-label>
+            <input matInput type="number" [(ngModel)]="config[field.key]">
+            @if (field.description) {
+              <mat-hint>{{ field.description }}</mat-hint>
+            }
+          </mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ field.label }}</mat-label>
+            <input matInput [(ngModel)]="config[field.key]">
+            @if (field.description) {
+              <mat-hint>{{ field.description }}</mat-hint>
+            }
+          </mat-form-field>
+        }
+      }
+    </div>
+  }
+
+  <div class="toggles-row">
+    <mat-slide-toggle [(ngModel)]="isVisible">Visible sur le dashboard</mat-slide-toggle>
+    <mat-slide-toggle [(ngModel)]="historize">Activer l'historisation</mat-slide-toggle>
+    <mat-slide-toggle [(ngModel)]="notifyOnStateChange">Notification Telegram au changement d'etat</mat-slide-toggle>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-raised-button color="primary" (click)="save()"
+          [disabled]="!name.trim() || !roomId || !pluginId">
+    {{ isEdit ? 'Modifier' : 'Créer' }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,178 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Modifier la planification' : 'Nouvelle planification' }}</h2>
+
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nom</mat-label>
+    <input matInput [(ngModel)]="name" required placeholder="Ex: Allumer lumieres le matin">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Description</mat-label>
+    <input matInput [(ngModel)]="description" placeholder="Description optionnelle">
+  </mat-form-field>
+
+  <div class="form-row">
+    <mat-form-field appearance="outline" class="half-width">
+      <mat-label>Type</mat-label>
+      <mat-select [(ngModel)]="scheduleType">
+        @for (st of scheduleTypes; track st.value) {
+          <mat-option [value]="st.value">{{ st.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="half-width">
+      <mat-label>Heure</mat-label>
+      <input matInput [(ngModel)]="time" type="time">
+    </mat-form-field>
+  </div>
+
+  <!-- Weekly days -->
+  @if (scheduleType === 'weekly') {
+    <div class="days-selector">
+      <label>Jours de la semaine</label>
+      <div class="days-grid">
+        @for (day of dayLabels; track day; let i = $index) {
+          <button class="day-btn"
+                  [class.selected]="daysOfWeek[i]"
+                  (click)="daysOfWeek[i] = !daysOfWeek[i]">
+            {{ day }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Cron expression -->
+  @if (scheduleType === 'cron') {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Expression Cron</mat-label>
+      <input matInput [(ngModel)]="cronExpression" placeholder="*/15 * * * *">
+      <mat-hint>minute heure jour mois jour_semaine</mat-hint>
+    </mat-form-field>
+  }
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Fuseau horaire</mat-label>
+    <input matInput [(ngModel)]="timezone">
+  </mat-form-field>
+
+  <!-- Action section with mode toggle -->
+  <div class="action-section">
+    <div class="action-header">
+      <h3><mat-icon>play_circle</mat-icon> Action a executer</h3>
+      <mat-button-toggle-group [(ngModel)]="editorMode" (ngModelChange)="onEditorModeChange()" class="editor-toggle">
+        <mat-button-toggle value="visual" matTooltip="Editeur visuel">
+          <mat-icon>tune</mat-icon>
+        </mat-button-toggle>
+        <mat-button-toggle value="json" matTooltip="Editeur JSON">
+          <mat-icon>code</mat-icon>
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <!-- Visual editor -->
+    @if (editorMode === 'visual') {
+      <div class="visual-editor">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Type d'action</mat-label>
+          <mat-select [(ngModel)]="actionType">
+            @for (at of actionTypes; track at.value) {
+              <mat-option [value]="at.value">
+                <mat-icon>{{ at.icon }}</mat-icon> {{ at.label }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Device state targets -->
+        @if (actionType === 'set_device_state') {
+          <div class="targets-list">
+            @for (target of visualTargets; track $index) {
+              <div class="target-row">
+                <div class="target-fields">
+                  <mat-form-field appearance="outline" class="target-device">
+                    <mat-label>Appareil</mat-label>
+                    <mat-select [(ngModel)]="target.device_id">
+                      @for (device of devices; track device.id) {
+                        <mat-option [value]="device.id">{{ device.name }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="target-key">
+                    <mat-label>Propriete</mat-label>
+                    <input matInput [(ngModel)]="target.state_key" placeholder="power">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="target-value">
+                    <mat-label>Valeur</mat-label>
+                    <input matInput [(ngModel)]="target.state_value" placeholder="on">
+                  </mat-form-field>
+                  <button mat-icon-button color="warn" (click)="removeTarget($index)"
+                          [disabled]="visualTargets.length <= 1" matTooltip="Supprimer">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+                <div class="target-presets">
+                  @for (preset of statePresets; track preset.label) {
+                    <button mat-stroked-button class="preset-chip"
+                            [class.active]="target.state_key === preset.key && target.state_value === preset.value"
+                            (click)="applyPreset(target, preset)">
+                      {{ preset.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+            <button mat-stroked-button class="add-target-btn" (click)="addTarget()">
+              <mat-icon>add</mat-icon> Ajouter un appareil
+            </button>
+          </div>
+        }
+
+        <!-- Notification message -->
+        @if (actionType === 'send_notification' || actionType === 'send_telegram') {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Message</mat-label>
+            <textarea matInput [(ngModel)]="notificationMessage" rows="3"
+                      placeholder="Votre message de notification..."></textarea>
+          </mat-form-field>
+        }
+      </div>
+    }
+
+    <!-- JSON editor -->
+    @if (editorMode === 'json') {
+      <div class="json-editor">
+        <div class="action-toolbar">
+          <button mat-stroked-button class="mini-btn" (click)="formatJson()" matTooltip="Formater le JSON">
+            <mat-icon>auto_fix_high</mat-icon>
+          </button>
+        </div>
+        <div class="action-templates">
+          @for (tpl of actionTemplates; track tpl.label) {
+            <button mat-stroked-button class="tpl-btn" (click)="insertActionTemplate(tpl.value)">
+              {{ tpl.label }}
+            </button>
+          }
+        </div>
+        <mat-form-field appearance="outline" class="full-width action-field">
+          <textarea matInput
+                    [(ngModel)]="actionJson"
+                    rows="12"
+                    class="code-textarea"
+                    spellcheck="false"></textarea>
+          <mat-hint>JSON de l'action (set_device_state, send_notification, etc.)</mat-hint>
+        </mat-form-field>
+      </div>
+    }
+  </div>
+
+  <mat-slide-toggle [(ngModel)]="enabled">Planification active</mat-slide-toggle>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="!name.trim()">
+    {{ isEdit ? 'Modifier' : 'Creer' }}
+  </button>
+</mat-dialog-actions>

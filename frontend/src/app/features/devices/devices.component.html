@@ -1,0 +1,107 @@
+<div class="page-container fade-in">
+  <div class="page-header">
+    <h1>Appareils</h1>
+    <button mat-raised-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Nouvel appareil
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Rechercher</mat-label>
+      <input matInput [(ngModel)]="searchText" placeholder="Nom de l'appareil...">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Pièce</mat-label>
+      <mat-select [(ngModel)]="filterRoom">
+        <mat-option [value]="null">Toutes</mat-option>
+        @for (room of rooms; track room.id) {
+          <mat-option [value]="room.id">{{ room.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Type</mat-label>
+      <mat-select [(ngModel)]="filterType">
+        <mat-option value="">Tous</mat-option>
+        @for (type of deviceTypes; track type) {
+          <mat-option [value]="type">{{ type }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <div class="card-grid">
+    @for (device of filteredDevices; track device.id) {
+      <div class="thidom-card device-card" [class.device-on]="isOn(device)">
+        <div class="device-header">
+          <div class="device-icon" [class.on]="isOn(device)">
+            <mat-icon>{{ getDeviceIcon(device) }}</mat-icon>
+          </div>
+          <div class="device-info">
+            <span class="device-name">{{ device.name }}</span>
+            <span class="device-meta">
+              {{ getRoomName(device.room_id) }} · {{ getPluginName(device.plugin_id) }}
+            </span>
+          </div>
+          <button mat-icon-button [matMenuTriggerFor]="deviceMenu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #deviceMenu="matMenu">
+            <button mat-menu-item (click)="openEditDialog(device)">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+            <button mat-menu-item (click)="deleteDevice(device)" class="delete-action">
+              <mat-icon>delete</mat-icon> Supprimer
+            </button>
+          </mat-menu>
+        </div>
+
+        <div class="device-body">
+          <div class="device-type-badge">
+            <mat-chip>{{ device.device_type }}</mat-chip>
+          </div>
+
+          <div class="device-state-row">
+            @if (device.state && (device.state.power !== undefined)) {
+              <span class="state-text" [class.on]="isOn(device)">
+                {{ isOn(device) ? 'Allumé' : 'Éteint' }}
+              </span>
+              <button mat-icon-button (click)="toggleDevice(device)" [matTooltip]="isOn(device) ? 'Éteindre' : 'Allumer'">
+                <mat-icon [class.on]="isOn(device)">power_settings_new</mat-icon>
+              </button>
+            }
+            @if (device.state?.temperature !== undefined) {
+              <span class="state-text">{{ device.state.temperature }}°C</span>
+            }
+          </div>
+        </div>
+
+        <div class="device-footer">
+          @if (device.historize) {
+            <mat-icon class="badge-icon" matTooltip="Historisation active">timeline</mat-icon>
+          }
+          @if (!device.is_visible) {
+            <mat-icon class="badge-icon" matTooltip="Masqué du dashboard">visibility_off</mat-icon>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (!loading && filteredDevices.length === 0) {
+    <div class="empty-state">
+      <mat-icon>devices_other</mat-icon>
+      <p>Aucun appareil trouvé</p>
+    </div>
+  }
+</div>

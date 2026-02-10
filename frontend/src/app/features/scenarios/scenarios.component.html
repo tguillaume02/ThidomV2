@@ -1,0 +1,80 @@
+<div class="page-container fade-in">
+  <div class="page-header">
+    <h1>Scénarios</h1>
+    <button mat-raised-button color="primary" (click)="openEditor()">
+      <mat-icon>add</mat-icon>
+      Nouveau scénario
+    </button>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <div class="card-grid">
+    @for (scenario of scenarios; track scenario.id) {
+      <div class="thidom-card scenario-card" [class.disabled]="!scenario.enabled">
+        <div class="scenario-header">
+          <div class="scenario-icon" [class.active]="scenario.enabled">
+            <mat-icon>auto_fix_high</mat-icon>
+          </div>
+          <div class="scenario-info">
+            <span class="scenario-name">{{ scenario.name }}</span>
+            @if (scenario.description) {
+              <span class="scenario-desc">{{ scenario.description }}</span>
+            }
+          </div>
+          <button mat-icon-button [matMenuTriggerFor]="scenarioMenu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #scenarioMenu="matMenu">
+            <button mat-menu-item (click)="openEditor(scenario)">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+            <button mat-menu-item (click)="testScenario(scenario)">
+              <mat-icon>play_arrow</mat-icon> Tester
+            </button>
+            <button mat-menu-item (click)="deleteScenario(scenario)" class="delete-action">
+              <mat-icon>delete</mat-icon> Supprimer
+            </button>
+          </mat-menu>
+        </div>
+
+        <div class="scenario-details">
+          <div class="detail-row">
+            <mat-icon>bolt</mat-icon>
+            <span>{{ scenario.triggers.length || 0 }} déclencheur(s)</span>
+          </div>
+          <div class="detail-row">
+            <mat-icon>rule</mat-icon>
+            <span>{{ scenario.conditions.length || 0 }} condition(s)</span>
+          </div>
+          <div class="detail-row">
+            <mat-icon>play_circle</mat-icon>
+            <span>{{ scenario.actions.length || 0 }} action(s)</span>
+          </div>
+        </div>
+
+        <div class="scenario-footer">
+          <div class="footer-info">
+            <span class="trigger-count">Exécuté {{ scenario.trigger_count }} fois</span>
+            <span class="last-triggered">Dernier : {{ formatDate(scenario.last_triggered) }}</span>
+          </div>
+          <mat-slide-toggle
+            [checked]="scenario.enabled"
+            (change)="toggleScenario(scenario)"
+            matTooltip="Activer/Désactiver">
+          </mat-slide-toggle>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (!loading && scenarios.length === 0) {
+    <div class="empty-state">
+      <mat-icon>auto_fix_high</mat-icon>
+      <p>Aucun scénario configuré</p>
+      <span>Créez des automatisations pour votre maison</span>
+    </div>
+  }
+</div>

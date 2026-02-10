@@ -1,0 +1,66 @@
+<div class="page-container fade-in">
+  <div class="page-header">
+    <h1>Pièces</h1>
+    <button mat-raised-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Nouvelle pièce
+    </button>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <div class="card-grid">
+    @for (room of rooms; track room.id) {
+      <div class="thidom-card room-card" [style.border-left-color]="room.color">
+        <div class="room-header">
+          <div class="room-icon" [style.background]="room.color + '22'" [style.color]="room.color">
+            <mat-icon>{{ room.icon || 'meeting_room' }}</mat-icon>
+          </div>
+          <div class="room-info">
+            <span class="room-name">{{ room.name }}</span>
+            @if (getParentName(room.parent_id)) {
+              <span class="room-parent">
+                <mat-icon class="small-icon">subdirectory_arrow_right</mat-icon>
+                {{ getParentName(room.parent_id) }}
+              </span>
+            }
+          </div>
+          <button mat-icon-button [matMenuTriggerFor]="roomMenu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #roomMenu="matMenu">
+            <button mat-menu-item (click)="openEditDialog(room)">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+            <button mat-menu-item (click)="deleteRoom(room)" class="delete-action">
+              <mat-icon>delete</mat-icon> Supprimer
+            </button>
+          </mat-menu>
+        </div>
+
+        <div class="room-stats">
+          <div class="room-stat">
+            <mat-icon>devices</mat-icon>
+            <span>{{ getDeviceCount(room.id) }} appareil(s)</span>
+          </div>
+          @if (getChildCount(room.id) > 0) {
+            <div class="room-stat">
+              <mat-icon>account_tree</mat-icon>
+              <span>{{ getChildCount(room.id) }} sous-pièce(s)</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (!loading && rooms.length === 0) {
+    <div class="empty-state">
+      <mat-icon>meeting_room</mat-icon>
+      <p>Aucune pièce configurée</p>
+      <span>Commencez par créer vos pièces</span>
+    </div>
+  }
+</div>

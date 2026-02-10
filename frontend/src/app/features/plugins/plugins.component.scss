@@ -1,0 +1,123 @@
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--thidom-text-primary);
+  margin: 24px 0 16px;
+
+  mat-icon {
+    color: var(--thidom-green);
+  }
+}
+
+.plugin-card {
+  &.disabled {
+    opacity: 0.5;
+  }
+
+  .plugin-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .plugin-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 230, 118, 0.1);
+      color: var(--thidom-green);
+
+      &.info {
+        background: rgba(33, 150, 243, 0.1);
+        color: #42a5f5;
+      }
+    }
+
+    .plugin-info {
+      flex: 1;
+
+      .plugin-name {
+        display: block;
+        font-weight: 500;
+        font-size: 1.05rem;
+        color: var(--thidom-text-primary);
+      }
+
+      .plugin-version {
+        font-size: 0.8rem;
+        color: var(--thidom-text-secondary);
+      }
+    }
+  }
+
+  .plugin-description {
+    font-size: 0.9rem;
+    color: var(--thidom-text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  .plugin-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .plugin-chips {
+      display: flex;
+      gap: 8px;
+      flex: 1;
+    }
+  }
+
+  .plugin-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+
+    &.ok {
+      background: rgba(76, 175, 80, 0.1);
+      color: #2e7d32;
+    }
+
+    &.err {
+      background: rgba(244, 67, 54, 0.1);
+      color: #c62828;
+    }
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--thidom-text-secondary);
+
+  mat-icon {
+    font-size: 4rem;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  p {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    color: var(--thidom-text-primary);
+  }
+}

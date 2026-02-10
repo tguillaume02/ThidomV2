@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Modifier la pièce' : 'Nouvelle pièce' }}</h2>
+
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nom de la pièce</mat-label>
+    <input matInput [(ngModel)]="name" placeholder="Ex: Salon" required>
+  </mat-form-field>
+
+  <div class="icon-selector">
+    <label>Icône</label>
+    <div class="icon-grid">
+      @for (ic of icons; track ic) {
+        <button class="icon-btn" [class.selected]="icon === ic" (click)="icon = ic">
+          <mat-icon>{{ ic }}</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="color-selector">
+    <label>Couleur</label>
+    <div class="color-grid">
+      @for (c of colors; track c) {
+        <button
+          class="color-btn"
+          [style.background]="c"
+          [class.selected]="color === c"
+          (click)="color = c">
+        </button>
+      }
+    </div>
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Pièce parente (optionnel)</mat-label>
+    <mat-select [(ngModel)]="parentId">
+      <mat-option [value]="null">Aucune (pièce racine)</mat-option>
+      @for (room of availableParents; track room.id) {
+        <mat-option [value]="room.id">{{ room.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="!name.trim()">
+    {{ isEdit ? 'Modifier' : 'Créer' }}
+  </button>
+</mat-dialog-actions>

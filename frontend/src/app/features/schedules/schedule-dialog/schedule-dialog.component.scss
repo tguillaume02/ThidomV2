@@ -1,0 +1,204 @@
+.full-width {
+  width: 100%;
+}
+
+.half-width {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.days-selector {
+  margin-bottom: 16px;
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--thidom-text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .days-grid {
+    display: flex;
+    gap: 8px;
+
+    .day-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--thidom-border);
+      background: transparent;
+      color: var(--thidom-text-secondary);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: var(--thidom-green);
+      }
+
+      &.selected {
+        background: var(--thidom-green);
+        color: #000;
+        border-color: var(--thidom-green);
+      }
+    }
+  }
+}
+
+.action-section {
+  margin: 16px 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid var(--thidom-border);
+
+  .action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--thidom-green);
+      margin: 0;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .editor-toggle {
+      transform: scale(0.85);
+    }
+  }
+
+  // Visual editor
+  .visual-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .targets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .target-row {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid var(--thidom-border);
+    }
+
+    .target-fields {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+
+      .target-device {
+        flex: 2;
+        min-width: 0;
+      }
+
+      .target-key {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .target-value {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    .target-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+
+      .preset-chip {
+        font-size: 0.7rem;
+        padding: 0 8px;
+        min-height: 26px;
+        line-height: 26px;
+        border-radius: 13px;
+
+        &.active {
+          border-color: var(--thidom-green);
+          color: var(--thidom-green);
+          background: rgba(0, 230, 118, 0.08);
+        }
+      }
+    }
+
+    .add-target-btn {
+      align-self: flex-start;
+      font-size: 0.85rem;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  // JSON editor
+  .json-editor {
+    .action-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+
+      .mini-btn {
+        min-width: 36px;
+        padding: 0 8px;
+        line-height: 32px;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+
+    .action-templates {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+
+      .tpl-btn {
+        font-size: 0.75rem;
+        padding: 2px 10px;
+        min-height: 28px;
+        line-height: 1;
+      }
+    }
+
+    .action-field {
+      .code-textarea {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        min-height: 200px;
+      }
+    }
+  }
+}

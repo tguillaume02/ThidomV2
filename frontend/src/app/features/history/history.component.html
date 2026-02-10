@@ -1,0 +1,109 @@
+<div class="page-container fade-in">
+  <div class="page-header">
+    <h1>Historique</h1>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Appareil</mat-label>
+      <mat-select [(ngModel)]="selectedDeviceId" (ngModelChange)="loadHistory()">
+        @for (device of historizableDevices; track device.id) {
+          <mat-option [value]="device.id">{{ device.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Champ</mat-label>
+      <input matInput [(ngModel)]="selectedField" placeholder="temperature, humidity...">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Intervalle</mat-label>
+      <mat-select [(ngModel)]="interval">
+        @for (itv of intervals; track itv.value) {
+          <mat-option [value]="itv.value">{{ itv.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" (click)="loadHistory()" [disabled]="!selectedDeviceId || loading">
+      <mat-icon>refresh</mat-icon>
+      Charger
+    </button>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <!-- Stats -->
+  @if (historyData && historyData.points.length > 0) {
+    <div class="stats-row">
+      <div class="thidom-card stat-mini">
+        <span class="stat-label">Min</span>
+        <span class="stat-value">{{ getMinValue() }}</span>
+      </div>
+      <div class="thidom-card stat-mini">
+        <span class="stat-label">Max</span>
+        <span class="stat-value">{{ getMaxValue() }}</span>
+      </div>
+      <div class="thidom-card stat-mini">
+        <span class="stat-label">Moyenne</span>
+        <span class="stat-value">{{ getAvgValue() }}</span>
+      </div>
+      <div class="thidom-card stat-mini">
+        <span class="stat-label">Points</span>
+        <span class="stat-value">{{ historyData.points.length }}</span>
+      </div>
+    </div>
+
+    <!-- Simple Bar Chart -->
+    <div class="thidom-card chart-card">
+      <h3>{{ historyData.field }} — Dernières 24h</h3>
+      <div class="chart-area">
+        <div class="bars-container">
+          @for (point of historyData.points; track point.timestamp) {
+            <div class="bar-wrapper" [title]="formatTime(point.timestamp) + ': ' + point.value">
+              <div class="bar" [style.height.%]="getBarHeight(point.value)"></div>
+              <span class="bar-label">{{ formatTime(point.timestamp) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="thidom-card data-table-card">
+      <h3>Données brutes</h3>
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Horodatage</th>
+              <th>Champ</th>
+              <th>Valeur</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (point of historyData.points; track point.timestamp) {
+              <tr>
+                <td>{{ formatTime(point.timestamp) }}</td>
+                <td>{{ point.field }}</td>
+                <td>{{ point.value }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  @if (!loading && !historyData) {
+    <div class="empty-state">
+      <mat-icon>timeline</mat-icon>
+      <p>Sélectionnez un appareil pour consulter son historique</p>
+    </div>
+  }
+</div>

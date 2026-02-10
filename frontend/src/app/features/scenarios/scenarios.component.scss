@@ -1,0 +1,110 @@
+.scenario-card {
+  &.disabled { opacity: 0.5; }
+
+  .scenario-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    .scenario-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--thidom-text-secondary);
+
+      &.active {
+        background: rgba(0, 230, 118, 0.12);
+        color: var(--thidom-green);
+      }
+    }
+
+    .scenario-info {
+      flex: 1;
+
+      .scenario-name {
+        display: block;
+        font-weight: 500;
+        font-size: 1.05rem;
+      }
+
+      .scenario-desc {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--thidom-text-secondary);
+        margin-top: 2px;
+      }
+    }
+  }
+
+  .scenario-details {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+
+    .detail-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
+      color: var(--thidom-text-secondary);
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: var(--thidom-green);
+      }
+    }
+  }
+
+  .scenario-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--thidom-border);
+
+    .footer-info {
+      display: flex;
+      flex-direction: column;
+
+      .trigger-count {
+        font-size: 0.85rem;
+        color: var(--thidom-text-secondary);
+      }
+
+      .last-triggered {
+        font-size: 0.75rem;
+        color: var(--thidom-text-secondary);
+        opacity: 0.7;
+      }
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--thidom-text-secondary);
+
+  mat-icon {
+    font-size: 4rem;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  p {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    color: var(--thidom-text-primary);
+  }
+}
+
+.delete-action { color: #f44336; }

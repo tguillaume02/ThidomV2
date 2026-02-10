@@ -1,0 +1,80 @@
+<div class="page-container fade-in">
+  <div class="page-header">
+    <h1>Logs</h1>
+    <button mat-stroked-button (click)="resetFilters()">
+      <mat-icon>filter_list_off</mat-icon>
+      Réinitialiser filtres
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Niveau</mat-label>
+      <mat-select [(ngModel)]="filterLevel" (ngModelChange)="loadLogs()">
+        <mat-option value="">Tous</mat-option>
+        @for (level of levels; track level) {
+          <mat-option [value]="level">{{ level }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Catégorie</mat-label>
+      <mat-select [(ngModel)]="filterCategory" (ngModelChange)="loadLogs()">
+        <mat-option value="">Toutes</mat-option>
+        @for (cat of categories; track cat) {
+          <mat-option [value]="cat">{{ getCategoryLabel(cat) }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <!-- Log List -->
+  <div class="thidom-card logs-table-card">
+    <div class="logs-list">
+      @for (log of logs; track log.id) {
+        <div class="log-entry" [class]="getLevelClass(log.level)">
+          <div class="log-icon">
+            <mat-icon>{{ getLevelIcon(log.level) }}</mat-icon>
+          </div>
+          <div class="log-content">
+            <div class="log-header-row">
+              <mat-chip class="level-chip" [class]="getLevelClass(log.level)">{{ log.level }}</mat-chip>
+              <mat-chip>{{ getCategoryLabel(log.category) }}</mat-chip>
+              @if (log.source) {
+                <span class="log-source">{{ log.source }}</span>
+              }
+              <span class="log-time">{{ formatDate(log.created_at) }}</span>
+            </div>
+            <p class="log-message">{{ log.message }}</p>
+            @if (log.details) {
+              <details class="log-details">
+                <summary>Détails</summary>
+                <pre>{{ log.details | json }}</pre>
+              </details>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (logs.length === 0 && !loading) {
+      <div class="empty-state">
+        <mat-icon>receipt_long</mat-icon>
+        <p>Aucun log trouvé</p>
+      </div>
+    }
+
+    <mat-paginator
+      [length]="1000"
+      [pageSize]="limit"
+      [pageSizeOptions]="[25, 50, 100]"
+      (page)="onPageChange($event)">
+    </mat-paginator>
+  </div>
+</div>

@@ -1,0 +1,112 @@
+<div class="page-container fade-in">
+  <div class="page-header">
+    <h1>Plugins</h1>
+    <button mat-raised-button color="primary" (click)="syncPlugins()" [disabled]="syncing">
+      <mat-icon>sync</mat-icon>
+      {{ syncing ? 'Synchronisation...' : 'Synchroniser' }}
+    </button>
+  </div>
+
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <!-- Control Plugins -->
+  @if (controlPlugins.length > 0) {
+    <h2 class="section-title">
+      <mat-icon>settings_remote</mat-icon>
+      Plugins de controle
+    </h2>
+    <div class="card-grid">
+      @for (plugin of controlPlugins; track plugin.id) {
+        <div class="thidom-card plugin-card" [class.disabled]="!plugin.enabled">
+          <div class="plugin-header">
+            <div class="plugin-icon">
+              <mat-icon>{{ plugin.icon || 'extension' }}</mat-icon>
+            </div>
+            <div class="plugin-info">
+              <span class="plugin-name">{{ plugin.name }}</span>
+              <span class="plugin-version">v{{ plugin.version }}</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="plugin.enabled"
+              (change)="togglePlugin(plugin)"
+              matTooltip="Activer/Desactiver">
+            </mat-slide-toggle>
+          </div>
+          <p class="plugin-description">{{ plugin.description }}</p>
+
+          @if (plugin.enabled && status(plugin); as s) {
+            <div class="plugin-status" [class.ok]="s.connected" [class.err]="!s.connected">
+              <mat-icon>{{ s.connected ? 'check_circle' : 'error_outline' }}</mat-icon>
+              <span>{{ s.message }}</span>
+            </div>
+          }
+
+          <div class="plugin-footer">
+            <div class="plugin-chips">
+              <mat-chip>{{ plugin.category }}</mat-chip>
+              <mat-chip>{{ plugin.slug }}</mat-chip>
+            </div>
+            <button mat-icon-button matTooltip="Configurer le hub" (click)="openSetup(plugin)" [disabled]="!plugin.enabled">
+              <mat-icon>settings</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Info Plugins -->
+  @if (infoPlugins.length > 0) {
+    <h2 class="section-title">
+      <mat-icon>info</mat-icon>
+      Plugins d'information
+    </h2>
+    <div class="card-grid">
+      @for (plugin of infoPlugins; track plugin.id) {
+        <div class="thidom-card plugin-card" [class.disabled]="!plugin.enabled">
+          <div class="plugin-header">
+            <div class="plugin-icon info">
+              <mat-icon>{{ plugin.icon || 'extension' }}</mat-icon>
+            </div>
+            <div class="plugin-info">
+              <span class="plugin-name">{{ plugin.name }}</span>
+              <span class="plugin-version">v{{ plugin.version }}</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="plugin.enabled"
+              (change)="togglePlugin(plugin)">
+            </mat-slide-toggle>
+          </div>
+          <p class="plugin-description">{{ plugin.description }}</p>
+
+          @if (plugin.enabled && status(plugin); as s) {
+            <div class="plugin-status" [class.ok]="s.connected" [class.err]="!s.connected">
+              <mat-icon>{{ s.connected ? 'check_circle' : 'error_outline' }}</mat-icon>
+              <span>{{ s.message }}</span>
+            </div>
+          }
+
+          <div class="plugin-footer">
+            <div class="plugin-chips">
+              <mat-chip>{{ plugin.category }}</mat-chip>
+              <mat-chip>{{ plugin.slug }}</mat-chip>
+            </div>
+            <button mat-icon-button matTooltip="Configurer le hub" (click)="openSetup(plugin)" [disabled]="!plugin.enabled">
+              <mat-icon>settings</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (!loading && plugins.length === 0) {
+    <div class="empty-state">
+      <mat-icon>extension</mat-icon>
+      <p>Aucun plugin enregistre</p>
+      <span>Cliquez sur "Synchroniser" pour detecter les plugins disponibles</span>
+    </div>
+  }
+</div>

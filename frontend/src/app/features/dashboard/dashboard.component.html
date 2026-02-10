@@ -1,0 +1,294 @@
+<div class="page-container fade-in">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Tableau de bord</h1>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <mat-icon class="stat-icon rooms">meeting_room</mat-icon>
+      <div class="stat-info">
+        <span class="stat-value">{{ totalRooms }}</span>
+        <span class="stat-label">Pieces</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <mat-icon class="stat-icon devices">devices</mat-icon>
+      <div class="stat-info">
+        <span class="stat-value">{{ totalDevices }}</span>
+        <span class="stat-label">Appareils</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <mat-icon class="stat-icon online">power</mat-icon>
+      <div class="stat-info">
+        <span class="stat-value">{{ onlineDevices }}</span>
+        <span class="stat-label">Actifs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Room Filter Chips -->
+  @if (rooms.length > 0) {
+    <div class="room-chips">
+      <mat-chip-set>
+        <mat-chip
+          [class.selected]="selectedRoomId === null"
+          (click)="selectRoom(null)">
+          <mat-icon matChipAvatar>home</mat-icon>
+          Toutes les pieces
+        </mat-chip>
+        @for (room of rooms; track room.id) {
+          <mat-chip
+            [class.selected]="selectedRoomId === room.id"
+            (click)="selectRoom(room.id)">
+            <mat-icon matChipAvatar>{{ room.icon || 'meeting_room' }}</mat-icon>
+            {{ room.name }}
+          </mat-chip>
+        }
+      </mat-chip-set>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <!-- Devices grouped by room -->
+  @for (group of roomsWithDevices; track group.room.id) {
+    <div class="room-section">
+      <div class="room-section-header">
+        <mat-icon [style.color]="group.room.color">{{ group.room.icon || 'meeting_room' }}</mat-icon>
+        <h2>{{ group.room.name }}</h2>
+        <span class="room-device-count">{{ group.devices.length }} appareil(s)</span>
+      </div>
+      <div class="card-grid">
+        @for (device of group.devices; track device.id) {
+          <!-- Weather Widget -->
+          @if (isWeatherSensor(device)) {
+            <div class="device-card thidom-card weather-card">
+              <div class="device-header">
+                <div class="device-icon-wrapper on">
+                  <mat-icon>cloud</mat-icon>
+                </div>
+                <div class="device-info">
+                  <span class="device-name">{{ device.name }}</span>
+                </div>
+              </div>
+
+              <div class="weather-widget">
+                <!-- Main weather -->
+                <div class="weather-main">
+                  @if (device.state?.temperature !== undefined) {
+                    <span class="weather-temp">{{ device.state.temperature }}°C</span>
+                  }
+                  @if (device.state?.condition || device.state?.description || device.state?.weather_desc) {
+                    <span class="weather-desc">{{ device.state.condition || device.state.description || device.state.weather_desc }}</span>
+                  }
+                </div>
+
+                <!-- Weather details -->
+                <div class="weather-details">
+                  @if (device.state?.humidity !== undefined) {
+                    <div class="weather-detail"><mat-icon>water_drop</mat-icon><span>{{ device.state.humidity }}%</span></div>
+                  }
+                  @if (device.state?.wind_speed !== undefined) {
+                    <div class="weather-detail"><mat-icon>air</mat-icon><span>{{ device.state.wind_speed }} km/h</span></div>
+                  }
+                  @if (device.state?.pressure !== undefined) {
+                    <div class="weather-detail"><mat-icon>compress</mat-icon><span>{{ device.state.pressure }} hPa</span></div>
+                  }
+                </div>
+
+                <!-- Sun -->
+                @if (device.state?.sunrise || device.state?.sunset) {
+                  <div class="weather-sun">
+                    @if (device.state?.sunrise) {
+                      <div class="weather-detail"><mat-icon>wb_twilight</mat-icon><span>{{ device.state.sunrise }}</span></div>
+                    }
+                    @if (device.state?.sunset) {
+                      <div class="weather-detail"><mat-icon>nights_stay</mat-icon><span>{{ device.state.sunset }}</span></div>
+                    }
+                  </div>
+                }
+
+                <!-- Calendar info -->
+                <div class="weather-calendar">
+                  @if (device.state?.season) {
+                    <span class="weather-chip season">{{ device.state.season }}</span>
+                  }
+                  @if (device.state?.is_weekend) {
+                    <span class="weather-chip weekend">Weekend</span>
+                  }
+                  @if (device.state?.is_school_holiday) {
+                    <span class="weather-chip holiday">{{ device.state.school_holiday }}</span>
+                  }
+                </div>
+
+                <!-- Vigilance -->
+                @if (device.state?.vigilance && device.state.vigilance.level >= 2) {
+                  <div class="weather-vigilance" [style.border-color]="getWeatherVigilanceColor(device)">
+                    <mat-icon [style.color]="getWeatherVigilanceColor(device)">warning</mat-icon>
+                    <div class="vigilance-info">
+                      <span class="vigilance-level" [style.color]="getWeatherVigilanceColor(device)">
+                        Vigilance {{ device.state.vigilance.color }}
+                      </span>
+                      @for (alert of getWeatherVigilanceAlerts(device); track alert.risk_id) {
+                        <span class="vigilance-risk">{{ alert.risk_name }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else {
+          <!-- Normal device card -->
+          <div class="device-card thidom-card"
+               [class.device-on]="isDeviceOn(device)"
+               [class.device-alert]="device.state?.smoke === true"
+               [class.device-camera]="isCamera(device)">
+
+            <!-- Header: icon + name + battery -->
+            <div class="device-header">
+              <div class="device-icon-wrapper" [class.on]="isDeviceOn(device)">
+                <mat-icon>{{ getDeviceIcon(device) }}</mat-icon>
+              </div>
+              <div class="device-info">
+                <span class="device-name">{{ device.name }}</span>
+              </div>
+              @if (getBatteryLevel(device) !== null) {
+                <div class="battery-indicator"
+                     [class]="getBatteryClass(getBatteryLevel(device)!)"
+                     [matTooltip]="'Batterie ' + getBatteryLevel(device) + '%'">
+                  <mat-icon>{{ getBatteryIcon(getBatteryLevel(device)!) }}</mat-icon>
+                  <span class="battery-text">{{ getBatteryLevel(device) }}%</span>
+                </div>
+              }
+            </div>
+
+            <!-- Camera stream -->
+            @if (isCamera(device)) {
+              <div class="camera-container">
+                @if (getCameraStreamUrl(device)) {
+                  <img [src]="getCameraStreamUrl(device)" alt="Camera" class="camera-stream" />
+                } @else {
+                  <div class="camera-placeholder">
+                    <mat-icon>videocam</mat-icon>
+                    <span>{{ isDeviceOn(device) ? 'Flux non configure' : 'Camera hors ligne' }}</span>
+                    <small>Ajouter stream_url dans la configuration de l'appareil</small>
+                  </div>
+                }
+                @if (device.state?.recording) {
+                  <div class="recording-badge">
+                    <span class="rec-dot"></span> REC
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- State display -->
+            <div class="device-state">
+              <span class="state-value" [class.on]="isDeviceOn(device)">
+                {{ getStateLabel(device) }}
+              </span>
+              @if (getStateDetails(device).length > 0) {
+                <div class="state-details">
+                  @for (detail of getStateDetails(device); track detail) {
+                    <span class="detail-chip">{{ detail }}</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Thermostat controls -->
+            @if (isThermostat(device)) {
+              <div class="thermostat-control">
+                @if (hasThermostatTempWarning(device)) {
+                  <div class="thermostat-warning">
+                    <mat-icon>warning</mat-icon>
+                    <span>Aucun capteur de temperature. Configurez un capteur lie ou ajoutez un capteur dans la piece.</span>
+                  </div>
+                }
+                @if (device.state?.heating === true) {
+                  <div class="thermostat-heating-badge">
+                    <mat-icon>local_fire_department</mat-icon>
+                    <span>Chauffage actif</span>
+                  </div>
+                }
+                <div class="thermostat-row">
+                  <button class="temp-btn minus" (click)="adjustTemp(device, -0.5)" matTooltip="Baisser">
+                    <mat-icon>remove</mat-icon>
+                  </button>
+                  <div class="temp-display">
+                    <span class="temp-target">{{ getTargetTemp(device) }}°C</span>
+                    <span class="temp-label">Consigne</span>
+                  </div>
+                  <button class="temp-btn plus" (click)="adjustTemp(device, 0.5)" matTooltip="Augmenter">
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </div>
+                @if (getThermostatTempSource(device)) {
+                  <div class="thermostat-source">
+                    <mat-icon>sensors</mat-icon>
+                    <span>{{ getThermostatTempSource(device) }}</span>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Cover / Garage door slider -->
+            @if (isCover(device)) {
+              <div class="cover-control">
+                <div class="cover-slider-row">
+                  <mat-icon class="cover-icon">{{ getCoverPosition(device) > 0 ? 'blinds' : 'blinds_closed' }}</mat-icon>
+                  <mat-slider min="0" max="100" step="5" class="cover-slider" discrete>
+                    <input matSliderThumb
+                           [value]="getCoverPosition(device)"
+                           (valueChange)="onCoverPositionChange(device, $event)" />
+                  </mat-slider>
+                  <span class="cover-value">{{ getCoverPosition(device) }}%</span>
+                </div>
+                <div class="cover-presets">
+                  <button class="preset-btn" (click)="setCoverPreset(device, 0)" matTooltip="Fermer">
+                    <mat-icon>vertical_align_bottom</mat-icon>
+                  </button>
+                  <button class="preset-btn" (click)="setCoverPreset(device, 50)" matTooltip="50%">
+                    <mat-icon>unfold_more</mat-icon>
+                  </button>
+                  <button class="preset-btn" (click)="setCoverPreset(device, 100)" matTooltip="Ouvrir">
+                    <mat-icon>vertical_align_top</mat-icon>
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- Toggle button for lights/switches -->
+            <div class="device-actions">
+              @if (isToggleable(device)) {
+                <button class="toggle-btn"
+                        [class.on]="isDeviceOn(device)"
+                        [class.toggling]="togglingDeviceIds.has(device.id)"
+                        [matTooltip]="getToggleTooltip(device)"
+                        [disabled]="togglingDeviceIds.has(device.id)"
+                        (click)="toggleDevice(device)">
+                  <mat-icon>{{ getToggleIcon(device) }}</mat-icon>
+                </button>
+              }
+            </div>
+          </div>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  @if (!loading && displayedDevices.length === 0) {
+    <div class="empty-state">
+      <mat-icon>devices_other</mat-icon>
+      <p>Aucun appareil a afficher</p>
+      <span>Ajoutez des appareils depuis la section "Appareils"</span>
+    </div>
+  }
+</div>
