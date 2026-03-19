@@ -1,0 +1,27 @@
+<div class="bourse-widget">
+  <div class="bourse-main">
+    <span class="bourse-price">{{ formatPrice() }}</span>
+    <span class="bourse-currency">{{ device.state?.currency || '' }}</span>
+  </div>
+
+  <div class="bourse-name" *ngIf="device.state?.name">
+    {{ device.state.name }}
+  </div>
+
+  <div class="bourse-change" *ngIf="device.state?.change !== undefined">
+    <span [class.positive]="device.state.change >= 0"
+          [class.negative]="device.state.change < 0">
+      <mat-icon>{{ device.state.change >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+      {{ formatChange() }} ({{ formatChangePercent() }})
+    </span>
+  </div>
+
+  <div class="bourse-details">
+    <span class="bourse-symbol" *ngIf="device.state?.symbol">{{ device.state.symbol }}</span>
+    <span class="bourse-market" *ngIf="device.state?.market_state">{{ getMarketLabel() }}</span>
+    <span class="bourse-prev" *ngIf="device.state?.previous_close !== undefined"
+          [matTooltip]="'Cloture precedente'">
+      Prec. {{ formatPrevClose() }}
+    </span>
+  </div>
+</div>

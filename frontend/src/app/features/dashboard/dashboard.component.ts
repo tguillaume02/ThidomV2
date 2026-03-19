@@ -14,6 +14,11 @@ import { RoomService } from '@core/services/room.service';
 import { DeviceService } from '@core/services/device.service';
 import { WebSocketService } from '@core/services/websocket.service';
 import { Room, Device } from '@core/models/models';
+import { WeatherWidgetComponent } from './widgets/weather-widget/weather-widget.component';
+import { BourseWidgetComponent } from './widgets/bourse-widget/bourse-widget.component';
+import { ThermostatWidgetComponent } from './widgets/thermostat-widget/thermostat-widget.component';
+import { CoverWidgetComponent } from './widgets/cover-widget/cover-widget.component';
+import { CameraWidgetComponent } from './widgets/camera-widget/camera-widget.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -29,6 +34,11 @@ import { Room, Device } from '@core/models/models';
     MatProgressBarModule,
     MatSlideToggleModule,
     MatSliderModule,
+    WeatherWidgetComponent,
+    BourseWidgetComponent,
+    ThermostatWidgetComponent,
+    CoverWidgetComponent,
+    CameraWidgetComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -75,9 +85,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadData();
     this.wsSub = this.wsService.messages$.subscribe(msg => {
       if (msg.type === 'device_state_update') {
-        const device = this.allDevices.find(d => d.id === msg['device_id']);
-        if (device) {
-          device.state = msg['state'];
+        const idx = this.allDevices.findIndex(d => d.id === msg['device_id']);
+        if (idx >= 0) {
+          this.allDevices[idx] = {
+            ...this.allDevices[idx],
+            state: msg['state'],
+          };
+          this.allDevices = [...this.allDevices];
+          this.togglingDeviceIds.delete(msg['device_id']);
         }
       }
     });
@@ -115,9 +130,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.togglingDeviceIds.add(device.id);
     const action = device.state?.power === 'on' ? 'turn_off' : 'turn_on';
     this.deviceService.executeAction(device.id, action).subscribe({
-      next: updated => {
-        this.updateDevice(updated);
-        this.togglingDeviceIds.delete(device.id);
+      next: () => {
+        // Safety timeout: if no WebSocket confirmation within 10s, clear toggling
+        setTimeout(() => this.togglingDeviceIds.delete(device.id), 10000);
       },
       error: () => {
         this.togglingDeviceIds.delete(device.id);
@@ -125,7 +140,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ---- Cover / Garage door position ----
+  // ---- Cover position ----
 
   onCoverPositionChange(device: Device, position: number): void {
     this.deviceService.updateState(device.id, { position, power: position > 0 ? 'on' : 'off' }).subscribe({
@@ -133,11 +148,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  setCoverPreset(device: Device, position: number): void {
-    this.onCoverPositionChange(device, position);
-  }
-
-  // ---- Thermostat target temperature ----
+  // ---- Thermostat ----
 
   onTargetTempChange(device: Device, temp: number): void {
     device.state = { ...device.state, target_temperature: temp };
@@ -146,142 +157,82 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  adjustTemp(device: Device, delta: number): void {
-    const current = device.state?.target_temperature ?? device.state?.temperature ?? 20;
-    const newTemp = Math.round(Math.max(5, Math.min(35, current + delta)) * 2) / 2;
-    this.onTargetTempChange(device, newTemp);
-  }
-
-  // ---- Camera ----
-
-  getCameraStreamUrl(device: Device): string | null {
-    if (device.device_type !== 'camera') return null;
-    if (!device.config?.stream_url) return null;
-    return `/api/cameras/${device.id}/stream`;
-  }
-
-  getCameraSnapshotUrl(device: Device): string | null {
-    if (device.device_type !== 'camera') return null;
-    if (!device.config?.stream_url && !device.config?.snapshot_url) return null;
-    return `/api/cameras/${device.id}/snapshot`;
-  }
-
   // ---- Thermostat temperature resolution ----
 
   getThermostatCurrentTemp(device: Device): number | null {
-    // 1. Linked sensor
     if (device.linked_sensor_id) {
       const sensor = this.allDevices.find(d => d.id === device.linked_sensor_id);
-      if (sensor?.state?.temperature !== undefined) {
-        return sensor.state.temperature;
-      }
+      if (sensor?.state?.temperature !== undefined) return sensor.state.temperature;
     }
-    // 2. Own temperature reading
-    if (device.state?.temperature !== undefined) {
-      return device.state.temperature;
-    }
-    // 3. Room sensor fallback
+    if (device.state?.temperature !== undefined) return device.state.temperature;
     const roomSensor = this.allDevices.find(
       d => d.room_id === device.room_id && d.id !== device.id
         && d.device_type === 'sensor' && d.state?.temperature !== undefined
     );
-    if (roomSensor) {
-      return roomSensor.state.temperature;
-    }
-    return null;
+    return roomSensor ? roomSensor.state.temperature : null;
   }
 
   getThermostatTempSource(device: Device): string {
     if (device.linked_sensor_id) {
       const sensor = this.allDevices.find(d => d.id === device.linked_sensor_id);
-      if (sensor?.state?.temperature !== undefined) {
-        return sensor.name;
-      }
+      if (sensor?.state?.temperature !== undefined) return sensor.name;
       return 'Capteur lie introuvable';
     }
-    if (device.state?.temperature !== undefined) {
-      return '';
-    }
+    if (device.state?.temperature !== undefined) return '';
     const roomSensor = this.allDevices.find(
       d => d.room_id === device.room_id && d.id !== device.id
         && d.device_type === 'sensor' && d.state?.temperature !== undefined
     );
-    if (roomSensor) {
-      return roomSensor.name;
-    }
-    return '';
+    return roomSensor ? roomSensor.name : '';
   }
 
-  hasThermostatTempWarning(device: Device): boolean {
-    return this.getThermostatCurrentTemp(device) === null;
+  // ---- Device type checks ----
+
+  isDeviceOn(device: Device): boolean { return device.state?.power === 'on'; }
+
+  isToggleable(device: Device): boolean {
+    return ['light', 'switch'].indexOf(device.device_type) !== -1;
+  }
+
+  isCover(device: Device): boolean { return device.device_type === 'cover'; }
+  isThermostat(device: Device): boolean { return device.device_type === 'thermostat'; }
+  isCamera(device: Device): boolean { return device.device_type === 'camera'; }
+
+  isWeatherSensor(device: Device): boolean {
+    if (device.device_type !== 'sensor' || !device.state) return false;
+    const s = device.state;
+    return s['provider'] === 'meteofrance' || s['provider'] === 'openweathermap'
+      || s['weather_desc'] !== undefined || s['condition'] !== undefined
+      || s['vigilance'] !== undefined || s['season'] !== undefined;
+  }
+
+  isBourseDevice(device: Device): boolean {
+    if (device.device_type !== 'sensor' || !device.state) return false;
+    return device.state['symbol'] !== undefined && device.state['price'] !== undefined;
   }
 
   // ---- Helpers ----
 
   private updateDevice(updated: Device): void {
     const idx = this.allDevices.findIndex(d => d.id === updated.id);
-    if (idx >= 0) {
-      this.allDevices[idx] = updated;
-    }
+    if (idx >= 0) { this.allDevices[idx] = updated; }
   }
 
   getDeviceIcon(device: Device): string {
     if (device.icon && device.icon !== 'devices') return device.icon;
     const icons: Record<string, string> = {
-      light: 'lightbulb',
-      switch: 'toggle_on',
-      sensor: 'sensors',
-      thermostat: 'thermostat',
-      cover: 'blinds',
-      lock: 'lock',
-      camera: 'videocam',
-      variable: 'data_object',
+      light: 'lightbulb', switch: 'toggle_on', sensor: 'sensors',
+      thermostat: 'thermostat', cover: 'blinds', lock: 'lock',
+      camera: 'videocam', variable: 'data_object',
     };
     return icons[device.device_type] || 'devices';
   }
 
-  isDeviceOn(device: Device): boolean {
-    return device.state?.power === 'on';
-  }
-
-  isToggleable(device: Device): boolean {
-    return ['light', 'switch'].includes(device.device_type);
-  }
-
-  isCover(device: Device): boolean {
-    return device.device_type === 'cover';
-  }
-
-  isThermostat(device: Device): boolean {
-    return device.device_type === 'thermostat';
-  }
-
-  isCamera(device: Device): boolean {
-    return device.device_type === 'camera';
-  }
-
-  isWeatherSensor(device: Device): boolean {
-    return device.device_type === 'sensor' && device.state?.season !== undefined;
-  }
-
-  getWeatherVigilanceColor(device: Device): string {
-    const v = device.state?.vigilance;
-    if (!v) return '';
-    const colors: Record<string, string> = { vert: '#4caf50', jaune: '#ffeb3b', orange: '#ff9800', rouge: '#f44336' };
-    return colors[v.color] || '';
-  }
-
-  getWeatherVigilanceAlerts(device: Device): any[] {
-    return device.state?.vigilance?.alerts || [];
-  }
-
   getStateLabel(device: Device): string {
     if (!device.state || Object.keys(device.state).length === 0) return 'Hors ligne';
-
     const s = device.state;
     const parts: string[] = [];
 
-    // Thermostat
     if (device.device_type === 'thermostat') {
       const currentTemp = this.getThermostatCurrentTemp(device);
       if (currentTemp !== null) parts.push(`${currentTemp}°C`);
@@ -292,56 +243,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return 'Pas de capteur';
     }
 
-    // Temperature
-    if (s['temperature'] !== undefined) {
-      parts.push(`${s['temperature']}°C`);
-    }
+    if (s['temperature'] !== undefined) parts.push(`${s['temperature']}°C`);
+    if (s['humidity'] !== undefined) parts.push(`${s['humidity']}%`);
 
-    // Humidity
-    if (s['humidity'] !== undefined) {
-      parts.push(`${s['humidity']}%`);
-    }
-
-    // Cover position
     if (device.device_type === 'cover' && s['position'] !== undefined) {
       return s['position'] === 0 ? 'Ferme' : s['position'] === 100 ? 'Ouvert' : `Ouvert ${s['position']}%`;
     }
-
-    // Lock
-    if (s['locked'] !== undefined) {
-      return s['locked'] ? 'Verrouille' : 'Deverrouille';
-    }
-
-    // Camera
+    if (s['locked'] !== undefined) return s['locked'] ? 'Verrouille' : 'Deverrouille';
     if (device.device_type === 'camera') {
       if (s['recording']) return 'Enregistrement';
       return s['power'] === 'on' ? 'En ligne' : 'Hors ligne';
     }
-
-    // Smoke
-    if (s['smoke'] !== undefined) {
-      return s['smoke'] ? 'ALERTE FUMEE' : 'Normal';
-    }
-
-    // Motion
-    if (s['occupancy'] !== undefined) {
-      return s['occupancy'] ? 'Mouvement detecte' : 'Aucun mouvement';
-    }
-
-    // Contact
-    if (s['contact'] !== undefined) {
-      return s['contact'] ? 'Ferme' : 'Ouvert';
-    }
-
-    // Weather
-    if (s['condition'] !== undefined) {
-      return `${s['condition']}`;
-    }
+    if (s['smoke'] !== undefined) return s['smoke'] ? 'ALERTE FUMEE' : 'Normal';
+    if (s['occupancy'] !== undefined) return s['occupancy'] ? 'Mouvement detecte' : 'Aucun mouvement';
+    if (s['contact'] !== undefined) return s['contact'] ? 'Ferme' : 'Ouvert';
 
     if (parts.length > 0) return parts.join(' · ');
-
     if (s['power']) return s['power'] === 'on' ? 'Allume' : 'Eteint';
-
     return 'Actif';
   }
 
@@ -350,36 +268,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const s = device.state;
     const details: string[] = [];
 
-    if (s['brightness'] !== undefined && s['brightness'] > 0) {
-      details.push(`Luminosite ${s['brightness']}%`);
-    }
-    if (s['color_temp'] !== undefined) {
-      details.push(`${s['color_temp']}K`);
-    }
-    if (s['wind_speed'] !== undefined) {
-      details.push(`Vent ${s['wind_speed']} km/h`);
-    }
-    if (s['pressure'] !== undefined) {
-      details.push(`${s['pressure']} hPa`);
-    }
-    if (s['consumption'] !== undefined && s['consumption'] > 0) {
-      details.push(`${s['consumption']} W`);
-    }
+    if (s['brightness'] !== undefined && s['brightness'] > 0) details.push(`Luminosite ${s['brightness']}%`);
+    if (s['color_temp'] !== undefined) details.push(`${s['color_temp']}K`);
+    if (s['consumption'] !== undefined && s['consumption'] > 0) details.push(`${s['consumption']} W`);
     if (device.device_type === 'thermostat') {
-      if (s['humidity'] !== undefined) {
-        details.push(`Humidite ${s['humidity']}%`);
-      }
-      if (device.hysteresis != null && device.hysteresis > 0) {
-        details.push(`Hysteresis ±${device.hysteresis}°C`);
-      }
+      if (s['humidity'] !== undefined) details.push(`Humidite ${s['humidity']}%`);
+      if (device.hysteresis != null && device.hysteresis > 0) details.push(`Hysteresis ±${device.hysteresis}°C`);
     }
-
     return details;
   }
 
-  getBatteryLevel(device: Device): number | null {
-    return device.state?.battery ?? null;
-  }
+  getBatteryLevel(device: Device): number | null { return device.state?.battery ?? null; }
 
   getBatteryIcon(level: number): string {
     if (level > 80) return 'battery_full';
@@ -395,19 +294,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return 'battery-low';
   }
 
-  getToggleIcon(device: Device): string {
-    return 'power_settings_new';
-  }
-
-  getToggleTooltip(device: Device): string {
-    return this.isDeviceOn(device) ? 'Eteindre' : 'Allumer';
-  }
-
-  getCoverPosition(device: Device): number {
-    return device.state?.position ?? 0;
-  }
-
-  getTargetTemp(device: Device): number {
-    return device.state?.target_temperature ?? device.state?.temperature ?? 20;
-  }
+  getToggleIcon(device: Device): string { return 'power_settings_new'; }
+  getToggleTooltip(device: Device): string { return this.isDeviceOn(device) ? 'Eteindre' : 'Allumer'; }
 }

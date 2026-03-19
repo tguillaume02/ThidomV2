@@ -1,7 +1,7 @@
-# ?? ThiDom — Application de Gestion Domotique
+﻿# ?? ThiDom â€” Application de Gestion Domotique
 
 <p align="center">
-  <strong>ThiDom</strong> est une application Web complète de gestion domotique avec une interface moderne, intuitive et responsive.
+  <strong>ThiDom</strong> est une application Web complÃ¨te de gestion domotique avec une interface moderne, intuitive et responsive.
 </p>
 
 ---
@@ -20,7 +20,7 @@
 ?  ?  (tree)  ? ? (config) ? ? (charts) ?            ?
 ?  ???????????? ???????????? ????????????            ?
 ?              Angular Material + SCSS                 ?
-?              WebSocket (temps réel)                   ?
+?              WebSocket (temps rÃ©el)                   ?
 ???????????????????????????????????????????????????????
                      ? HTTP REST + WebSocket
 ???????????????????????????????????????????????????????
@@ -37,11 +37,11 @@
 ???????????????????????????????????????????????????????
                      ?
 ???????????????????????????????????????????????????????
-?                    Bases de données                   ?
+?                    Bases de donnÃ©es                   ?
 ?  ????????????????         ?????????????????????     ?
 ?  ?   SQLite /   ?         ?     InfluxDB      ?     ?
-?  ?  PostgreSQL  ?         ?  (séries temp.)   ?     ?
-?  ?  (entités)   ?         ?  (historisation)  ?     ?
+?  ?  PostgreSQL  ?         ?  (sÃ©ries temp.)   ?     ?
+?  ?  (entitÃ©s)   ?         ?  (historisation)  ?     ?
 ?  ????????????????         ?????????????????????     ?
 ???????????????????????????????????????????????????????
 ```
@@ -55,27 +55,27 @@
 | **Frontend** | Angular 17 (Standalone) + Angular Material + SCSS |
 | **Backend**  | Python 3.11 + FastAPI + SQLAlchemy (async)        |
 | **Auth**     | JWT (PyJWT) + bcrypt                              |
-| **BDD**      | SQLite (dev) / PostgreSQL (prod)                  |
+| **BDD**      | SQLite (dev) / MySQL ou PostgreSQL (prod)     |
 | **Time Series** | InfluxDB (historisation)                       |
-| **Temps réel** | WebSocket natif                                 |
+| **Temps rÃ©el** | WebSocket natif                                 |
 | **Scheduler** | APScheduler                                      |
-| **Scénarios** | JSON engine (compatible Blockly)                 |
+| **ScÃ©narios** | JSON engine (compatible Blockly) + champs dynamiques |
 | **Conteneurs** | Docker + Docker Compose                         |
 
 ---
 
-## ?? Schéma de Données (Entités & Relations)
+## ?? SchÃ©ma de DonnÃ©es (EntitÃ©s & Relations)
 
 ```
 ????????????       ????????????       ????????????
 ?   User   ?       ?   Room   ?????   ?  Plugin  ?
 ????????????       ????????????   ?   ????????????
 ? id       ?       ? id       ?   ?   ? id       ?
-? username ?       ? name     ?   ?   ? name     ?
-? email    ?       ? icon     ?   ?   ? slug     ?
-? password ?       ? color    ?   ?   ? category ?
-? is_admin ?       ? parent_id?????   ? config_  ?
-????????????       ? order    ?       ?  schema  ?
+? username ?       ? name     ?   ?   ? slug     ?
+? email    ?       ? icon     ?   ?   ? category ?
+? password ?       ? color    ?   ?   ? config_  ?
+? is_admin ?       ? parent_id?????   ?  schema  ?
+????????????       ? order    ?       ?  historize?
                    ????????????       ????????????
                         ? 1:N              ? 1:N
                    ????????????????????????????
@@ -103,26 +103,28 @@
 
 ---
 
-## ?? Système de Plugins
+## ?? SystÃ¨me de Plugins
 
 ### Architecture
 
 ```python
 BasePlugin (ABC)           # Classe abstraite
-??? MQTTPlugin             # Contrôle via MQTT
-??? ZigBeePlugin           # Contrôle ZigBee (Zigbee2MQTT/deCONZ)
-??? WeatherPlugin          # Météo (OpenWeatherMap + Météo France + Vigilance)
-??? VirtualPlugin          # Appareils virtuels (tests/logique)
-??? ... (extensible)       # Ajouter un fichier = ajouter un plugin
+â”œâ”€â”€ MQTTPlugin             # ContrÃ´le via MQTT
+â”œâ”€â”€ ZigBeePlugin           # ContrÃ´le ZigBee (Zigbee2MQTT/deCONZ)
+â”œâ”€â”€ RF24NetworkPlugin      # Appareils sans-fil nRF24L01+ via dongle USB
+â”œâ”€â”€ WeatherPlugin          # MÃ©tÃ©o (OpenWeatherMap + MÃ©tÃ©o France + Vigilance)
+â”œâ”€â”€ TelegramPlugin         # Notifications Telegram
+â”œâ”€â”€ VirtualPlugin          # Appareils virtuels (tests/logique)
+â””â”€â”€ ... (extensible)       # Ajouter un fichier = ajouter un plugin
 ```
 
 ### Ajouter un nouveau plugin
 
-1. Créer `backend/app/plugins/mon_plugin.py`
-2. Hériter de `BasePlugin`
-3. Décorer avec `@register_plugin`
-4. Implémenter : `initialize()`, `get_state()`, `set_state()`, `execute_action()`
-5. Définir `get_config_schema()` (JSON Schema pour l'UI dynamique)
+1. CrÃ©er `backend/app/plugins/mon_plugin.py`
+2. HÃ©riter de `BasePlugin`
+3. DÃ©corer avec `@register_plugin`
+4. ImplÃ©menter : `initialize()`, `get_state()`, `set_state()`, `execute_action()`
+5. DÃ©finir `get_config_schema()` (JSON Schema pour l'UI dynamique)
 
 ```python
 from app.plugins.base_plugin import BasePlugin
@@ -149,27 +151,48 @@ class MonPlugin(BasePlugin):
     async def execute_action(self, device_config, action, params): ...
 ```
 
-### Plugin Météo France (Vigilance)
+### Plugin MÃ©tÃ©o France (Vigilance)
 
-Le plugin Weather intègre nativement l'API Météo France avec :
-- **Observations** et **prévisions** via l'API rpcache
+Le plugin Weather intÃ¨gre nativement l'API MÃ©tÃ©o France avec :
+- **Observations** et **prÃ©visions** via l'API rpcache
 - **Alertes vigilance** (vent, pluie, orages, crues, neige, canicule, grand froid, avalanches, vagues)
-- Support du **code INSEE** et du **numéro de département**
+- Support du **code INSEE** et du **numÃ©ro de dÃ©partement**
 
 ---
 
-## ?? Système de Scénarios
+## ?? SystÃ¨me de ScÃ©narios
 
-### Modèle Trigger ? Condition ? Action
+### ModÃ¨le Trigger â†’ Condition â†’ Action
 
 ```
-DÉCLENCHEUR (trigger)         CONDITION               ACTION
-???????????????????    ????????????????????    ???????????????????????
-? • device_state  ?????? • device_state   ?????? • set_device_state  ?
-? • time          ?    ? • time_range     ?    ? • delay             ?
-? • event         ?    ? • value_compare  ?    ? • send_notification ?
-? • cron          ?    ? • AND / OR logic ?    ? • execute_scenario  ?
-???????????????????    ????????????????????    ???????????????????????
+DÃ‰CLENCHEUR (trigger)         CONDITION               ACTION
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ â€¢ device_state  â”œâ”€â”€â”€â”€â–º â€¢ device_state   â”œâ”€â”€â”€â”€â–º â€¢ set_device_state  â”‚
+â”‚ â€¢ time          â”‚    â”‚ â€¢ time_range     â”‚    â”‚ â€¢ delay             â”‚
+â”‚ â€¢ event         â”‚    â”‚ â€¢ value_compare  â”‚    â”‚ â€¢ send_notification â”‚
+â”‚ â€¢ cron          â”‚    â”‚ â€¢ AND / OR logic â”‚    â”‚ â€¢ execute_scenario  â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+### Champs dynamiques
+
+Les champs disponibles dans les triggers et conditions sont **dynamiques** :
+lorsqu'un appareil est sÃ©lectionnÃ© dans l'Ã©diteur Blockly, seuls les champs
+rÃ©ellement prÃ©sents dans son state sont proposÃ©s.
+
+Exemples pour un capteur mÃ©tÃ©o : `temperature`, `humidity`, `wind_speed`,
+`vigilance > color`, `vigilance > level`, `season`, `is_weekend`...
+
+Les sous-champs sont accessibles en notation pointÃ©e (`vigilance.color`).
+
+### Templates de messages
+
+Les actions de notification supportent des variables dynamiques :
+```
+{{ device.state.temperature }}        â†’ valeur du trigger device
+{{ device.state.vigilance.color }}    â†’ sous-champ nested
+{{ device.name }}                     â†’ nom de l'appareil
+{{ devices.5.state.humidity }}        â†’ n'importe quel appareil par ID
 ```
 
 ### Exemple JSON
@@ -185,16 +208,21 @@ DÉCLENCHEUR (trigger)         CONDITION               ACTION
   "actions": [
     {"type": "set_device_state", "config": {"device_id": 5, "state": {"power": "on"}}},
     {"type": "delay", "config": {"seconds": 10}},
-    {"type": "send_notification", "config": {"message": "Lumière allumée !"}}
+    {"type": "send_notification", "config": {"message": "LumiÃ¨re allumÃ©e !"}}
   ]
 }
 ```
 
 ---
 
-## ?? Démarrage Rapide
+## ?? DÃ©marrage Rapide
 
-### Prérequis
+### Guides d'installation dÃ©taillÃ©s
+
+- **[Installation Windows](INSTALL_WINDOWS.md)** â€” PowerShell, certificats, MySQL
+- **[Installation Linux](INSTALL_LINUX.md)** â€” Ubuntu/Debian, systemd, apache
+
+### PrÃ©requis
 
 - Python 3.11+
 - Node.js 20+
@@ -223,9 +251,9 @@ npm start
 
 L'application est accessible sur :
 - **HTTP** : `http://localhost` (port 80)
-- **HTTPS** : `https://localhost` (port 443, nécessite un certificat SSL)
+- **HTTPS** : `https://localhost` (port 443, nÃ©cessite un certificat SSL)
 
-Voir [HOW_INSTALL_AND_EXECUTE.md](HOW_INSTALL_AND_EXECUTE.md) pour les instructions détaillées de configuration HTTPS.
+Voir [HOW_INSTALL_AND_EXECUTE.md](HOW_INSTALL_AND_EXECUTE.md) pour les instructions dÃ©taillÃ©es de configuration HTTPS.
 
 ### Docker Compose
 
@@ -250,8 +278,8 @@ thidom/
 ?   ?   ??? models/             # SQLAlchemy models
 ?   ?   ??? schemas/            # Pydantic schemas
 ?   ?   ??? services/           # Business logic (logs, scheduler, scenario engine)
-?   ?   ??? plugins/            # Plugin system (base, registry, implémentations)
-?   ?   ??? main.py             # Point d'entrée FastAPI
+?   ?   ??? plugins/            # Plugin system (base, registry, implÃ©mentations)
+?   ?   ??? main.py             # Point d'entrÃ©e FastAPI
 ?   ??? requirements.txt
 ?   ??? Dockerfile
 ?   ??? .env
@@ -263,21 +291,21 @@ thidom/
 ?   ?   ?   ??? features/       # Modules fonctionnels
 ?   ?   ?   ?   ??? auth/       # Login / Register
 ?   ?   ?   ?   ??? dashboard/  # Tableau de bord principal
-?   ?   ?   ?   ??? rooms/      # Gestion des pièces
+?   ?   ?   ?   ??? rooms/      # Gestion des piÃ¨ces
 ?   ?   ?   ?   ??? devices/    # Gestion des appareils
 ?   ?   ?   ?   ??? plugins/    # Gestion des plugins
-?   ?   ?   ?   ??? scenarios/  # Éditeur de scénarios
+?   ?   ?   ?   ??? scenarios/  # Ã‰diteur de scÃ©narios
 ?   ?   ?   ?   ??? schedules/  # Planification
 ?   ?   ?   ?   ??? history/    # Historique & graphiques
 ?   ?   ?   ?   ??? logs/       # Consultation des logs
 ?   ?   ?   ??? layout/         # Sidebar + Toolbar
 ?   ?   ??? assets/             # Logo, images
 ?   ?   ??? environments/       # Config dev/prod
-?   ?   ??? styles.scss         # Thème global (dark, vert ThiDom)
+?   ?   ??? styles.scss         # ThÃ¨me global (dark, vert ThiDom)
 ?   ??? angular.json
 ?   ??? package.json
 ?   ??? Dockerfile
-?   ??? nginx.conf
+?   ??? apache.conf
 ?
 ??? docker-compose.yml
 ??? README.md
@@ -285,36 +313,36 @@ thidom/
 
 ---
 
-## ?? Sécurité & Scalabilité
+## ?? SÃ©curitÃ© & ScalabilitÃ©
 
-### Sécurité
-- **HTTPS / TLS** avec certificat SSL (auto-signé en dev, Let's Encrypt en prod)
+### SÃ©curitÃ©
+- **HTTPS / TLS** avec certificat SSL (auto-signÃ© en dev, Let's Encrypt en prod)
 - **Authentification JWT** avec expiration configurable
 - **Hachage bcrypt** des mots de passe
-- **CORS** configuré (origines autorisées)
-- **Validation Pydantic** sur toutes les entrées API
+- **CORS** configurÃ© (origines autorisÃ©es)
+- **Validation Pydantic** sur toutes les entrÃ©es API
 - **Guards Angular** pour la protection des routes frontend
 - **Intercepteur HTTP** pour injection automatique du token
 
-### Scalabilité
-- **Architecture modulaire** : chaque plugin est indépendant
+### ScalabilitÃ©
+- **Architecture modulaire** : chaque plugin est indÃ©pendant
 - **Async/await** sur tout le backend (FastAPI + SQLAlchemy async)
-- **WebSocket** pour les mises à jour temps réel (pas de polling)
-- **SQLite ? PostgreSQL** : changement d'une ligne de config
-- **InfluxDB** pour les données de séries temporelles (historisation)
-- **Docker Compose** pour le déploiement conteneurisé
+- **WebSocket** pour les mises Ã  jour temps rÃ©el (pas de polling)
+- **SQLite â†’ MySQL / PostgreSQL** : changement d'une ligne de config
+- **InfluxDB** pour les donnÃ©es de sÃ©ries temporelles (historisation)
+- **Docker Compose** pour le dÃ©ploiement conteneurisÃ©
 - **Lazy loading Angular** pour des performances frontend optimales
 
 ---
 
 ## ?? Recommandations UX/UI
 
-- **Thème sombre** avec accent vert (#00E676) — identité ThiDom
-- **Navigation latérale** toujours visible avec icônes + labels
-- **Dashboard room-based** : vue par pièce avec filtres
+- **ThÃ¨me sombre** avec accent vert (#00E676) â€” identitÃ© ThiDom
+- **Navigation latÃ©rale** toujours visible avec icÃ´nes + labels
+- **Dashboard room-based** : vue par piÃ¨ce avec filtres
 - **Actions rapides** : toggle ON/OFF en un clic sur les appareils
-- **État temps réel** : indicateur WebSocket dans le sidebar
-- **Formulaires dynamiques** : config plugin auto-générée depuis le JSON Schema
+- **Ã‰tat temps rÃ©el** : indicateur WebSocket dans le sidebar
+- **Formulaires dynamiques** : config plugin auto-gÃ©nÃ©rÃ©e depuis le JSON Schema
 - **Responsive** : grilles CSS auto-adaptatives
 - **Animations** : transitions douces (fade-in, hover, transform)
 
@@ -322,4 +350,5 @@ thidom/
 
 ## ?? Licence
 
-Projet privé — ThiDom © 2025
+Projet privÃ© â€” ThiDom Â© 2025
+

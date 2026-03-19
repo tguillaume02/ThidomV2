@@ -4,6 +4,12 @@ import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
 import { Device } from '@core/models/models';
 
+export interface StateField {
+  key: string;
+  label: string;
+  type: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DeviceService {
   private readonly apiUrl = `${environment.apiUrl}/devices`;
@@ -40,5 +46,9 @@ export class DeviceService {
 
   executeAction(id: number, action: string, params?: any): Observable<Device> {
     return this.http.post<Device>(`${this.apiUrl}/${id}/action`, { action, params });
+  }
+
+  getStateFields(id: number): Observable<StateField[]> {
+    return this.http.get<StateField[]>(`${this.apiUrl}/${id}/state-fields`);
   }
 }

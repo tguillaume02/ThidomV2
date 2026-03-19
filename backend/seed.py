@@ -423,8 +423,7 @@ async def seed():
                 name="Station Meteo", device_type="sensor", icon="cloud",
                 room_id=jardin.id, plugin_id=plugin_weather.id, order=2,
                 config={
-                    "provider": "meteofrance", "city": "Paris", "department": "75",
-                    "insee_code": "75056", "latitude": 48.8566, "longitude": 2.3522,
+                    "provider": "meteofrance", "city": "Paris",
                     "show_sunrise_sunset": True, "show_vigilance": True,
                     "show_season": True, "show_school_holidays": True, "show_weekend": True,
                     "refresh_interval": 900,

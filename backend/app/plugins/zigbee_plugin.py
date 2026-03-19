@@ -272,11 +272,30 @@ class ZigBeePlugin(BasePlugin):
                     name = topic[len(base) + 1:]
                     if "/" not in name:  # ignore /set, /get sub-topics
                         self._device_states[name] = payload
+                        # Build ThiDom state (translate Z2M "state" -> "power")
+                        thidom_state = dict(payload)
+                        if "state" in thidom_state:
+                            thidom_state["power"] = "on" if thidom_state.pop("state") == "ON" else "off"
+                        # Persist to DB, broadcast via WS, trigger scenarios
+                        friendly = name
+                        try:
+                            asyncio.create_task(self._persist_state(friendly, thidom_state))
+                        except Exception:
+                            logger.exception("Failed to schedule DB persistence for ZigBee device '%s'", friendly)
         except asyncio.CancelledError:
             pass
         except Exception as exc:
             logger.error(f"ZigBee listener error: {exc}")
             self._update_status(False, f"Listener error: {exc}")
+
+    async def _persist_state(self, friendly_name: str, state: dict):
+        """Persist a ZigBee device state update to DB via the shared bridge."""
+        from app.services.plugin_state_bridge import push_state_update
+        await push_state_update(
+            "zigbee",
+            state,
+            lambda cfg: cfg.get("friendly_name", "") == friendly_name,
+        )
 
     async def _publish(self, friendly_name: str, payload: Any):
         if not self._client:

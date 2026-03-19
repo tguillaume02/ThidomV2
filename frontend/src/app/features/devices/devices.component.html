@@ -76,12 +76,14 @@
               <span class="state-text" [class.on]="isOn(device)">
                 {{ isOn(device) ? 'Allumé' : 'Éteint' }}
               </span>
-              <button mat-icon-button (click)="toggleDevice(device)" [matTooltip]="isOn(device) ? 'Éteindre' : 'Allumer'">
-                <mat-icon [class.on]="isOn(device)">power_settings_new</mat-icon>
-              </button>
+              @if (isToggleable(device)) {
+                <button mat-icon-button (click)="toggleDevice(device)" [matTooltip]="isOn(device) ? 'Éteindre' : 'Allumer'">
+                  <mat-icon [class.on]="isOn(device)">power_settings_new</mat-icon>
+                </button>
+              }
             }
-            @if (device.state?.temperature !== undefined) {
-              <span class="state-text">{{ device.state.temperature }}°C</span>
+            @if (getStateText(device)) {
+              <span class="state-text">{{ getStateText(device) }}</span>
             }
           </div>
         </div>

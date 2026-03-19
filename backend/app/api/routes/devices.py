@@ -19,6 +19,38 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Plugins that push state asynchronously from hardware callbacks.
+# For these, UI must wait for the real device feedback (WebSocket push)
+# instead of applying an immediate optimistic state update.
+PUSH_BASED_PLUGINS = {"rf24network", "zigbee", "mqtt"}
+
+
+def _flatten_state_keys(data: dict, prefix: str = "") -> list[dict]:
+    """Flatten a nested state dict into a list of {key, label, type} entries.
+
+    Example: {"temperature": 12, "vigilance": {"color": "vert", "level": 2}}
+    Returns: [
+        {"key": "temperature", "label": "temperature", "type": "number"},
+        {"key": "vigilance.color", "label": "vigilance > color", "type": "string"},
+        {"key": "vigilance.level", "label": "vigilance > level", "type": "number"},
+    ]
+    """
+    result = []
+    SKIP_KEYS = {"last_refresh", "latitude", "longitude"}
+    for key, value in data.items():
+        full_key = f"{prefix}{key}" if not prefix else f"{prefix}.{key}"
+        if full_key in SKIP_KEYS or key in SKIP_KEYS:
+            continue
+        if isinstance(value, dict):
+            result.extend(_flatten_state_keys(value, full_key))
+        elif isinstance(value, list):
+            continue
+        else:
+            value_type = "number" if isinstance(value, (int, float)) else "boolean" if isinstance(value, bool) else "string"
+            label = full_key.replace(".", " > ")
+            result.append({"key": full_key, "label": label, "type": value_type})
+    return result
+
 
 async def _notify_state_change(device_name: str, state: dict):
     """Send a Telegram notification for a device state change (background task)."""
@@ -189,6 +221,17 @@ async def delete_device(
     return {"message": f"Device '{name}' deleted"}
 
 
+@router.get("/{device_id}/state-fields")
+async def get_device_state_fields(device_id: int, db: AsyncSession = Depends(get_db)):
+    """Return the list of available state field keys for a device (for scenario editor)."""
+    result = await db.execute(select(Device).where(Device.id == device_id))
+    device = result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    state = device.state or {}
+    return _flatten_state_keys(state)
+
+
 @router.put("/{device_id}/state", response_model=DeviceResponse)
 async def update_device_state(
     device_id: int,
@@ -255,6 +298,7 @@ async def execute_device_action(
     plugin_model = plugin_result.scalar_one_or_none()
 
     new_state = None
+    plugin_slug = plugin_model.slug if plugin_model else None
 
     if plugin_model:
         plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
@@ -263,13 +307,15 @@ async def execute_device_action(
                 action_result = await plugin_instance.execute_action(
                     device.config or {}, action_data.action, action_data.params
                 )
-                if action_result:
+                # For push-based plugins, ignore immediate action result and
+                # wait for real hardware feedback through push_state_update.
+                if plugin_model.slug not in PUSH_BASED_PLUGINS and action_result:
                     new_state = action_result
             except Exception:
                 new_state = None
 
-    # Fallback: apply action directly on state if plugin didn't return a result
-    if not new_state:
+    # Fallback: apply action directly on state only for non push-based plugins
+    if not new_state and plugin_slug not in PUSH_BASED_PLUGINS:
         current_state = dict(device.state or {})
         if action_data.action == "turn_on":
             current_state["power"] = "on"
@@ -281,28 +327,31 @@ async def execute_device_action(
             current_state.update(action_data.params)
         new_state = current_state
 
-    device.state = {**(device.state or {}), **new_state}
-    await db.commit()
-    await db.refresh(device)
-    await manager.broadcast_device_state(device.id, device.state)
+    # For push-based plugins, do not mutate persisted state here.
+    # Return current device as-is; frontend will update on WebSocket feedback.
+    if new_state:
+        device.state = {**(device.state or {}), **new_state}
+        await db.commit()
+        await db.refresh(device)
+        await manager.broadcast_device_state(device.id, device.state)
 
-    # Thermostat hysteresis logic after action
-    if device.device_type == "thermostat":
-        await _apply_thermostat_logic(device, db)
+        # Thermostat hysteresis logic after action
+        if device.device_type == "thermostat":
+            await _apply_thermostat_logic(device, db)
 
-    # Scenario triggers
-    background_tasks.add_task(
-        scenario_engine.on_device_state_changed, device.id, device.state
-    )
+        # Scenario triggers
+        background_tasks.add_task(
+            scenario_engine.on_device_state_changed, device.id, device.state
+        )
 
-    # Telegram notification
-    if device.notify_on_state_change:
-        background_tasks.add_task(_notify_state_change, device.name, new_state)
+        # Telegram notification
+        if device.notify_on_state_change:
+            background_tasks.add_task(_notify_state_change, device.name, new_state)
 
     await create_log(
         db, "INFO", "user_action",
         f"Action '{action_data.action}' on device '{device.name}'",
         user_id=current_user.id, device_id=device.id,
-        details={"action": action_data.action, "params": action_data.params}
+        details={"action": action_data.action, "params": action_data.params, "plugin": plugin_slug}
     )
     return device

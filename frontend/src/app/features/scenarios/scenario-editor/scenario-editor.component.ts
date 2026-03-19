@@ -13,7 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Scenario, Device } from '@core/models/models';
 import { DeviceService } from '@core/services/device.service';
 import * as Blockly from 'blockly';
-import { THIDOM_TOOLBOX, blocklyToScenario, scenarioToBlocklyXml, setDeviceList } from './blockly-blocks';
+import { THIDOM_TOOLBOX, blocklyToScenario, scenarioToBlocklyXml, setDeviceList, setFetchStateFieldsFn } from './blockly-blocks';
 
 @Component({
   selector: 'app-scenario-editor',
@@ -57,18 +57,28 @@ export class ScenarioEditorComponent implements AfterViewInit, OnDestroy {
   triggerTemplates = [
     { label: 'Etat d\'un appareil', value: '{"type":"device_state","config":{"device_id":1,"field":"power"}}' },
     { label: 'Heure precise', value: '{"type":"time","config":{"time":"08:00"}}' },
+    { label: 'Jour de la semaine', value: '{"type":"day_compare","config":{"operator":"==","value":"1"}}' },
   ];
 
   conditionTemplates = [
-    { label: 'Etat appareil', value: '{"type":"device_state","config":{"device_id":1,"field":"power","operator":"==","value":"on"},"operator":"and"}' },
+    { label: 'Etat appareil (texte)', value: '{"type":"device_state","config":{"device_id":1,"field":"power","operator":"==","value":"on"},"operator":"and"}' },
+    { label: 'ET / OU (combiner)', value: '{"type":"compound","config":{"logic":"and","conditions":[]},"operator":"and"}' },
+    { label: 'Heure precise', value: '{"type":"time_exact","config":{"operator":"==","time":"18:00"},"operator":"and"}' },
     { label: 'Plage horaire', value: '{"type":"time_range","config":{"start":"08:00","end":"22:00"},"operator":"and"}' },
+    { label: 'Jour', value: '{"type":"day_compare","config":{"operator":"==","value":"1"},"operator":"and"}' },
+    { label: 'Derniere execution', value: '{"type":"last_execute","config":{"operator":">=","minutes":5},"operator":"and"}' },
+    { label: 'Derniere MAJ appareil', value: '{"type":"last_update","config":{"device_id":1,"operator":">=","minutes":5},"operator":"and"}' },
   ];
 
   actionTemplates = [
     { label: 'Changer etat appareil', value: '{"type":"set_device_state","config":{"device_id":1,"state":{"power":"on"}}}' },
+    { label: 'Level (%)', value: '{"type":"set_level","config":{"device_id":1,"level":50}}' },
+    { label: 'Changer etat temporaire', value: '{"type":"set_state_timed","config":{"device_id":1,"state":{"power":"on"},"revert_state":{"power":"off"},"duration_minutes":5}}' },
+    { label: 'Executer scenario', value: '{"type":"execute_scenario","config":{"scenario_id":1}}' },
     { label: 'Delai (secondes)', value: '{"type":"delay","config":{"seconds":5}}' },
     { label: 'Notification', value: '{"type":"send_notification","config":{"message":"Hello!"}}' },
     { label: 'Telegram', value: '{"type":"send_telegram","config":{"message":"Message Telegram"}}' },
+    { label: 'Email', value: '{"type":"send_email","config":{"to":"user@example.com","subject":"ThiDom Alert","message":"Contenu..."}}' },
   ];
 
   constructor(
@@ -92,7 +102,15 @@ export class ScenarioEditorComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.deviceService.getDevices().subscribe({
       next: (devices) => {
-        setDeviceList(devices.map(d => ({ id: d.id, name: d.name, device_type: d.device_type })));
+        setDeviceList(devices.map(d => ({ id: d.id, name: d.name, device_type: d.device_type, state: d.state })));
+        setFetchStateFieldsFn((deviceId: number) => {
+          return new Promise((resolve, reject) => {
+            this.deviceService.getStateFields(deviceId).subscribe({
+              next: fields => resolve(fields),
+              error: err => reject(err),
+            });
+          });
+        });
         this.devicesLoaded = true;
         setTimeout(() => this.initBlockly(), 300);
       },

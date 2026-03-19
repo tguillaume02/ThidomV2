@@ -69,16 +69,22 @@ export class PluginsComponent implements OnInit {
 
   refreshStatuses(): void {
     for (const p of this.plugins) {
-      if (p.enabled) {
+      if (p.enabled && this.hasHubConfig(p)) {
         this.pluginService.getPluginStatus(p.id).subscribe({
           next: (s) => { this.statuses[p.id] = s; },
         });
+      } else {
+        delete this.statuses[p.id];
       }
     }
   }
 
   status(plugin: Plugin): PluginConnectionStatus | null {
     return this.statuses[plugin.id] ?? null;
+  }
+
+  hasHubConfig(plugin: Plugin): boolean {
+    return plugin.needs_hub_config === true;
   }
 
   syncPlugins(): void {
@@ -114,9 +120,13 @@ export class PluginsComponent implements OnInit {
           this.snackBar.open(`Plugin "${updated.name}" desactive`, 'OK', { duration: 5000 });
         } else {
           this.snackBar.open(`Plugin "${updated.name}" active`, 'OK', { duration: 3000 });
-          this.pluginService.getPluginStatus(updated.id).subscribe({
-            next: (s) => { this.statuses[updated.id] = s; },
-          });
+          if (this.hasHubConfig(updated)) {
+            this.pluginService.getPluginStatus(updated.id).subscribe({
+              next: (s) => { this.statuses[updated.id] = s; },
+            });
+          } else {
+            delete this.statuses[updated.id];
+          }
         }
       },
     });

@@ -10,6 +10,7 @@ Device config (per-device):
 """
 from typing import Any, Dict, List, Optional
 import logging
+import ssl
 import httpx
 from app.plugins.base_plugin import BasePlugin
 from app.plugins.registry import register_plugin
@@ -19,6 +20,14 @@ logger = logging.getLogger(__name__)
 
 _bot_token: str = ""
 _chat_id: str = ""
+
+
+def _get_ssl_context():
+    """Create an SSL context that trusts the system certificate store.
+    This allows HTTPS to work behind corporate proxies with self-signed CA."""
+    ctx = ssl.create_default_context()
+    ctx.load_default_certs()
+    return ctx
 
 
 def _get_bot_token(device_config: Optional[Dict] = None) -> str:
@@ -45,7 +54,7 @@ async def send_telegram_message(message: str, bot_token: str = "", chat_id: str 
     payload = {"chat_id": cid, "text": message, "parse_mode": "HTML"}
 
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=10, verify=_get_ssl_context()) as client:
             resp = await client.post(url, json=payload)
             if resp.status_code == 200:
                 logger.info(f"Telegram message sent: {message[:60]}...")
@@ -147,7 +156,7 @@ class TelegramPlugin(BasePlugin):
         if not token:
             return {"connected": False, "message": "Bot Token manquant"}
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, verify=_get_ssl_context()) as client:
                 r = await client.get(f"https://api.telegram.org/bot{token}/getMe")
                 if r.status_code == 200:
                     data = r.json()

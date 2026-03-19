@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { Device, Room, Plugin } from '@core/models/models';
 
 @Component({
@@ -25,6 +26,7 @@ import { Device, Room, Plugin } from '@core/models/models';
     MatIconModule,
     MatCheckboxModule,
     MatSlideToggleModule,
+    MatButtonToggleModule,
   ],
   templateUrl: './device-dialog.component.html',
   styleUrl: './device-dialog.component.scss',
@@ -41,6 +43,12 @@ export class DeviceDialogComponent implements OnInit {
   historize = false;
   notifyOnStateChange = false;
   hysteresis: number | null = null;
+  refreshInterval: number | null = null;
+
+  // Refresh interval UI state
+  refreshMode: 'preset' | 'custom' = 'preset';
+  customRefreshValue: number | null = null;
+  customRefreshUnit: 'seconds' | 'minutes' | 'hours' = 'minutes';
 
   rooms: Room[];
   plugins: Plugin[];
@@ -61,10 +69,33 @@ export class DeviceDialogComponent implements OnInit {
     { value: 'variable', label: 'Variable', icon: 'data_object' },
   ];
 
+  refreshPresets = [
+    { value: 5, label: '5 sec' },
+    { value: 30, label: '30 sec' },
+    { value: 60, label: '1 min' },
+    { value: 300, label: '5 min' },
+    { value: 900, label: '15 min' },
+    { value: 1800, label: '30 min' },
+    { value: 3600, label: '1 heure' },
+  ];
+
+  get showRefreshInterval(): boolean {
+    return this.selectedPlugin?.needs_polling === true;
+  }
+
   get temperatureSensors(): Device[] {
     return (this.allDevices || []).filter(
       d => d.device_type === 'sensor' && d.state?.temperature !== undefined
     );
+  }
+
+  /** Human-readable label for the current refresh interval */
+  get refreshDisplayLabel(): string {
+    const seconds = this.refreshInterval;
+    if (seconds == null) return '';
+    if (seconds < 60) return `${seconds} sec`;
+    if (seconds < 3600) return `${seconds / 60} min`;
+    return `${seconds / 3600} h`;
   }
 
   constructor(
@@ -88,6 +119,8 @@ export class DeviceDialogComponent implements OnInit {
       this.historize = data.device.historize;
       this.notifyOnStateChange = data.device.notify_on_state_change || false;
       this.hysteresis = data.device.hysteresis ?? null;
+      this.refreshInterval = this.config.refresh_interval ?? null;
+      this._initRefreshFromSeconds(this.refreshInterval);
     }
   }
 
@@ -100,27 +133,89 @@ export class DeviceDialogComponent implements OnInit {
   onPluginChange(): void {
     this.selectedPlugin = this.plugins.find(p => p.id === this.pluginId) || null;
     if (this.selectedPlugin?.config_schema?.properties) {
-      this.configFields = Object.entries(this.selectedPlugin.config_schema.properties).map(
-        ([key, schema]: [string, any]) => ({
+      this.configFields = Object.entries(this.selectedPlugin.config_schema.properties)
+        .filter(([key]) => key !== 'refresh_interval')
+        .map(([key, schema]: [string, any]) => ({
           key,
           label: schema.title || key,
           type: schema.type || 'string',
           description: schema.description || '',
           enum: schema.enum || null,
           default: schema.default,
-        })
-      );
-      // Apply defaults for new devices
+        }));
       if (!this.isEdit && this.selectedPlugin.default_config) {
         this.config = { ...this.selectedPlugin.default_config };
+        if (this.showRefreshInterval && this.refreshInterval == null) {
+          this.refreshInterval = this.config.refresh_interval ?? 900;
+          this._initRefreshFromSeconds(this.refreshInterval);
+        }
       }
     } else {
       this.configFields = [];
     }
   }
 
+  selectPreset(seconds: number): void {
+    this.refreshInterval = seconds;
+    this.refreshMode = 'preset';
+  }
+
+  isPresetSelected(seconds: number): boolean {
+    return this.refreshMode === 'preset' && this.refreshInterval === seconds;
+  }
+
+  switchToCustom(): void {
+    this.refreshMode = 'custom';
+    if (this.customRefreshValue == null) {
+      this.customRefreshValue = 5;
+      this.customRefreshUnit = 'minutes';
+    }
+    this._applyCustomToInterval();
+  }
+
+  onCustomValueChange(): void {
+    this._applyCustomToInterval();
+  }
+
+  onCustomUnitChange(): void {
+    this._applyCustomToInterval();
+  }
+
+  private _applyCustomToInterval(): void {
+    if (this.customRefreshValue == null || this.customRefreshValue <= 0) return;
+    const multipliers = { seconds: 1, minutes: 60, hours: 3600 };
+    this.refreshInterval = Math.round(this.customRefreshValue * multipliers[this.customRefreshUnit]);
+  }
+
+  private _initRefreshFromSeconds(seconds: number | null): void {
+    if (seconds == null) {
+      this.refreshMode = 'preset';
+      return;
+    }
+    const isPreset = this.refreshPresets.some(p => p.value === seconds);
+    if (isPreset) {
+      this.refreshMode = 'preset';
+    } else {
+      this.refreshMode = 'custom';
+      if (seconds >= 3600 && seconds % 3600 === 0) {
+        this.customRefreshValue = seconds / 3600;
+        this.customRefreshUnit = 'hours';
+      } else if (seconds >= 60 && seconds % 60 === 0) {
+        this.customRefreshValue = seconds / 60;
+        this.customRefreshUnit = 'minutes';
+      } else {
+        this.customRefreshValue = seconds;
+        this.customRefreshUnit = 'seconds';
+      }
+    }
+  }
+
   save(): void {
     if (!this.name.trim() || !this.roomId || !this.pluginId) return;
+    const config = { ...this.config };
+    if (this.showRefreshInterval && this.refreshInterval != null) {
+      config.refresh_interval = this.refreshInterval;
+    }
     this.dialogRef.close({
       name: this.name.trim(),
       device_type: this.deviceType,
@@ -128,7 +223,7 @@ export class DeviceDialogComponent implements OnInit {
       room_id: this.roomId,
       plugin_id: this.pluginId,
       linked_sensor_id: this.deviceType === 'thermostat' ? this.linkedSensorId : null,
-      config: this.config,
+      config,
       is_visible: this.isVisible,
       historize: this.historize,
       notify_on_state_change: this.notifyOnStateChange,

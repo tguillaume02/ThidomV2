@@ -22,6 +22,8 @@ export interface Plugin {
   category: 'control' | 'info';
   icon: string;
   enabled: boolean;
+  needs_polling: boolean;
+  needs_hub_config: boolean;
   hub_config: any;
   config_schema: any;
   default_config: any;

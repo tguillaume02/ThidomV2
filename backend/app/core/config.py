@@ -8,8 +8,11 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = True
 
-    # Database
-    database_url: str = "sqlite+aiosqlite:///./thidom.db"
+    # Database (supports sqlite, mysql, postgresql)
+    # SQLite:      sqlite+aiosqlite:///./thidomv2.db
+    # MySQL:       mysql+aiomysql://user:password@localhost:3306/thidomv2
+    # PostgreSQL:  postgresql+asyncpg://user:password@localhost:5432/thidomv2
+    database_url: str = "sqlite+aiosqlite:///./thidomv2.db"
 
     # JWT
     secret_key: str = "thidom-secret-key-change-in-production"
@@ -29,6 +32,14 @@ class Settings(BaseSettings):
     # Telegram
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+
+    # Email (SMTP)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
 
     # Timezone
     timezone: str = "Europe/Paris"

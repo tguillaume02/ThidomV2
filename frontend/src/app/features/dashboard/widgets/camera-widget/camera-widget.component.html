@@ -1,0 +1,11 @@
+<div class="camera-container">
+  <img *ngIf="getStreamUrl()" [src]="getStreamUrl()" alt="Camera" class="camera-stream" />
+  <div *ngIf="!getStreamUrl()" class="camera-placeholder">
+    <mat-icon>videocam</mat-icon>
+    <span>{{ isOn() ? 'Flux non configure' : 'Camera hors ligne' }}</span>
+    <small>Ajouter stream_url dans la configuration de l'appareil</small>
+  </div>
+  <div *ngIf="device.state?.recording" class="recording-badge">
+    <span class="rec-dot"></span> REC
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<div class="update-banner" *ngIf="updateAvailable" [@slideDown]>
+  <div class="update-content">
+    <mat-icon>system_update</mat-icon>
+    <div class="update-info">
+      <span class="update-title">Nouvelle version disponible</span>
+      <span class="update-detail" *ngIf="remoteMessage">{{ remoteMessage }}</span>
+      <span class="update-meta" *ngIf="remoteAuthor || remoteSha">
+        {{ remoteAuthor }} · {{ remoteSha }}
+      </span>
+    </div>
+    <div class="update-actions">
+      <button mat-stroked-button class="dismiss-btn" (click)="dismiss()">Plus tard</button>
+      <button mat-raised-button color="accent" class="update-btn" (click)="applyUpdate()" [disabled]="updating">
+        <mat-icon>{{ updating ? 'hourglass_empty' : 'download' }}</mat-icon>
+        {{ updating ? 'Mise a jour...' : 'Mettre a jour' }}
+      </button>
+    </div>
+  </div>
+  <mat-progress-bar *ngIf="updating" mode="indeterminate" color="accent"></mat-progress-bar>
+</div>

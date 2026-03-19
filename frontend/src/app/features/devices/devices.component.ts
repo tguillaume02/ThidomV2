@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -14,9 +14,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { Subscription } from 'rxjs';
 import { DeviceService } from '@core/services/device.service';
 import { RoomService } from '@core/services/room.service';
 import { PluginService } from '@core/services/plugin.service';
+import { WebSocketService } from '@core/services/websocket.service';
 import { Device, Room, Plugin } from '@core/models/models';
 import { DeviceDialogComponent } from './device-dialog/device-dialog.component';
 
@@ -43,7 +45,7 @@ import { DeviceDialogComponent } from './device-dialog/device-dialog.component';
   templateUrl: './devices.component.html',
   styleUrl: './devices.component.scss',
 })
-export class DevicesComponent implements OnInit {
+export class DevicesComponent implements OnInit, OnDestroy {
   devices: Device[] = [];
   rooms: Room[] = [];
   plugins: Plugin[] = [];
@@ -51,6 +53,9 @@ export class DevicesComponent implements OnInit {
   filterRoom: number | null = null;
   filterType = '';
   searchText = '';
+  togglingDeviceIds = new Set<number>();
+  private subscriptions = new Subscription();
+  private wsSub?: Subscription;
 
   get filteredDevices(): Device[] {
     return this.devices.filter(d => {
@@ -69,28 +74,45 @@ export class DevicesComponent implements OnInit {
     private deviceService: DeviceService,
     private roomService: RoomService,
     private pluginService: PluginService,
+    private wsService: WebSocketService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
   ) {}
 
   ngOnInit(): void {
     this.loadData();
+    this.wsSub = this.wsService.messages$.subscribe(msg => {
+      if (msg.type === 'device_state_update') {
+        const idx = this.devices.findIndex(d => d.id === msg['device_id']);
+        if (idx >= 0) {
+          this.devices[idx] = { ...this.devices[idx], state: msg['state'] };
+          this.devices = [...this.devices];
+          this.togglingDeviceIds.delete(msg['device_id']);
+        }
+      }
+    });
   }
 
   loadData(): void {
     this.loading = true;
-    this.roomService.getRooms().subscribe(rooms => this.rooms = rooms);
-    this.pluginService.getPlugins().subscribe(plugins => this.plugins = plugins);
-    this.deviceService.getDevices().subscribe({
-      next: (devices) => {
-        this.devices = devices;
-        this.loading = false;
-      },
-      error: () => {
-        this.loading = false;
-        this.snackBar.open('Erreur de chargement des appareils', 'Fermer', { duration: 3000 });
-      }
-    });
+    this.subscriptions.add(
+      this.roomService.getRooms().subscribe(rooms => this.rooms = rooms)
+    );
+    this.subscriptions.add(
+      this.pluginService.getPlugins().subscribe(plugins => this.plugins = plugins)
+    );
+    this.subscriptions.add(
+      this.deviceService.getDevices().subscribe({
+        next: (devices) => {
+          this.devices = devices;
+          this.loading = false;
+        },
+        error: () => {
+          this.loading = false;
+          this.snackBar.open('Erreur de chargement des appareils', 'Fermer', { duration: 3000 });
+        }
+      })
+    );
   }
 
   openCreateDialog(): void {
@@ -161,14 +183,46 @@ export class DevicesComponent implements OnInit {
   }
 
   toggleDevice(device: Device): void {
+    if (this.togglingDeviceIds.has(device.id)) return;
+    this.togglingDeviceIds.add(device.id);
     const action = device.state?.power === 'on' ? 'turn_off' : 'turn_on';
-    this.deviceService.executeAction(device.id, action).subscribe(updated => {
-      const idx = this.devices.findIndex(d => d.id === device.id);
-      if (idx >= 0) this.devices[idx] = updated;
+    this.deviceService.executeAction(device.id, action).subscribe({
+      next: () => {
+        setTimeout(() => this.togglingDeviceIds.delete(device.id), 10000);
+      },
+      error: () => {
+        this.togglingDeviceIds.delete(device.id);
+      }
     });
   }
 
   isOn(device: Device): boolean {
     return device.state?.power === 'on';
+  }
+
+  isToggleable(device: Device): boolean {
+    return ['light', 'switch'].indexOf(device.device_type) !== -1;
+  }
+
+  getStateText(device: Device): string {
+    const s = device.state || {};
+
+    if (s.temperature !== undefined) return `${s.temperature}°C`;
+    if (s.humidity !== undefined) return `${s.humidity}%`;
+    if (s.value !== undefined) {
+      const v = typeof s.value === 'number' ? s.value.toFixed(2) : s.value;
+      return s.currency ? `${v} ${s.currency}` : `${v}`;
+    }
+    if (s.price !== undefined) {
+      const p = typeof s.price === 'number' ? s.price.toFixed(2) : s.price;
+      return s.currency ? `${p} ${s.currency}` : `${p}`;
+    }
+
+    return '';
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+    this.wsSub?.unsubscribe();
   }
 }

@@ -36,7 +36,7 @@
           </div>
           <p class="plugin-description">{{ plugin.description }}</p>
 
-          @if (plugin.enabled && status(plugin); as s) {
+          @if (plugin.enabled && hasHubConfig(plugin) && status(plugin); as s) {
             <div class="plugin-status" [class.ok]="s.connected" [class.err]="!s.connected">
               <mat-icon>{{ s.connected ? 'check_circle' : 'error_outline' }}</mat-icon>
               <span>{{ s.message }}</span>
@@ -48,9 +48,11 @@
               <mat-chip>{{ plugin.category }}</mat-chip>
               <mat-chip>{{ plugin.slug }}</mat-chip>
             </div>
-            <button mat-icon-button matTooltip="Configurer le hub" (click)="openSetup(plugin)" [disabled]="!plugin.enabled">
-              <mat-icon>settings</mat-icon>
-            </button>
+            @if (hasHubConfig(plugin)) {
+              <button mat-icon-button matTooltip="Configurer le hub" (click)="openSetup(plugin)" [disabled]="!plugin.enabled">
+                <mat-icon>settings</mat-icon>
+              </button>
+            }
           </div>
         </div>
       }
@@ -81,7 +83,7 @@
           </div>
           <p class="plugin-description">{{ plugin.description }}</p>
 
-          @if (plugin.enabled && status(plugin); as s) {
+          @if (plugin.enabled && hasHubConfig(plugin) && status(plugin); as s) {
             <div class="plugin-status" [class.ok]="s.connected" [class.err]="!s.connected">
               <mat-icon>{{ s.connected ? 'check_circle' : 'error_outline' }}</mat-icon>
               <span>{{ s.message }}</span>
@@ -93,9 +95,11 @@
               <mat-chip>{{ plugin.category }}</mat-chip>
               <mat-chip>{{ plugin.slug }}</mat-chip>
             </div>
-            <button mat-icon-button matTooltip="Configurer le hub" (click)="openSetup(plugin)" [disabled]="!plugin.enabled">
-              <mat-icon>settings</mat-icon>
-            </button>
+            @if (hasHubConfig(plugin)) {
+              <button mat-icon-button matTooltip="Configurer le hub" (click)="openSetup(plugin)" [disabled]="!plugin.enabled">
+                <mat-icon>settings</mat-icon>
+              </button>
+            }
           </div>
         </div>
       }

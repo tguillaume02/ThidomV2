@@ -20,18 +20,24 @@
   .device-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 10px;
+    margin-bottom: 8px;
 
     .device-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: rgba(255, 255, 255, 0.05);
       color: var(--thidom-text-secondary);
+
+      mat-icon {
+        font-size: 1.15rem;
+        width: 20px;
+        height: 20px;
+      }
 
       &.on {
         background: rgba(0, 230, 118, 0.12);
@@ -41,15 +47,20 @@
 
     .device-info {
       flex: 1;
+      min-width: 0;
 
       .device-name {
         display: block;
         font-weight: 500;
+        font-size: 0.88rem;
         color: var(--thidom-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .device-meta {
-        font-size: 0.8rem;
+        font-size: 0.72rem;
         color: var(--thidom-text-secondary);
       }
     }
@@ -57,7 +68,13 @@
 
   .device-body {
     .device-type-badge {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+
+      mat-chip {
+        font-size: 0.7rem;
+        min-height: 24px;
+        padding: 0 8px;
+      }
     }
 
     .device-state-row {
@@ -66,27 +83,32 @@
       justify-content: space-between;
 
       .state-text {
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         color: var(--thidom-text-secondary);
 
         &.on { color: var(--thidom-green); }
       }
 
       .on { color: var(--thidom-green); }
+
+      button {
+        width: 32px;
+        height: 32px;
+      }
     }
   }
 
   .device-footer {
     display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    padding-top: 8px;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 6px;
     border-top: 1px solid var(--thidom-border);
 
     .badge-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
       color: var(--thidom-text-secondary);
     }
   }

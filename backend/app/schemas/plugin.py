@@ -34,6 +34,8 @@ class PluginHubConfigUpdate(BaseModel):
 class PluginResponse(PluginBase):
     id: int
     enabled: bool
+    needs_polling: bool = False
+    needs_hub_config: bool = False
     hub_config: Optional[Dict[str, Any]] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

@@ -1,0 +1,29 @@
+<div class="thermostat-control">
+  <div class="thermostat-warning" *ngIf="!hasTemperature()">
+    <mat-icon>warning</mat-icon>
+    <span>Aucun capteur de temperature. Configurez un capteur lie ou ajoutez un capteur dans la piece.</span>
+  </div>
+
+  <div class="thermostat-heating-badge" *ngIf="device.state?.heating === true">
+    <mat-icon>local_fire_department</mat-icon>
+    <span>Chauffage actif</span>
+  </div>
+
+  <div class="thermostat-row">
+    <button class="temp-btn minus" (click)="adjust(-0.5)" matTooltip="Baisser">
+      <mat-icon>remove</mat-icon>
+    </button>
+    <div class="temp-display">
+      <span class="temp-target">{{ getTargetTemp() }}°C</span>
+      <span class="temp-label">Consigne</span>
+    </div>
+    <button class="temp-btn plus" (click)="adjust(0.5)" matTooltip="Augmenter">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <div class="thermostat-source" *ngIf="tempSourceLabel">
+    <mat-icon>sensors</mat-icon>
+    <span>{{ tempSourceLabel }}</span>
+  </div>
+</div>

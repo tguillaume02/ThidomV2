@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from '@core/services/auth.service';
 import { WebSocketService } from '@core/services/websocket.service';
+import { UpdateBannerComponent } from './update-banner/update-banner.component';
 
 interface NavItem {
   label: string;
@@ -30,6 +31,7 @@ interface NavItem {
     MatButtonModule,
     MatTooltipModule,
     MatBadgeModule,
+    UpdateBannerComponent,
   ],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.scss',

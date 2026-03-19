@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { Injectable, NgZone } from '@angular/core';
+import { Subject, BehaviorSubject } from 'rxjs';
 import { environment } from '@environments/environment';
 
 export interface WsMessage {
@@ -17,6 +17,8 @@ export class WebSocketService {
   messages$ = this.messagesSubject.asObservable();
   connected$ = this.connectionStatus.asObservable();
 
+  constructor(private ngZone: NgZone) {}
+
   connect(): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
 
@@ -24,7 +26,9 @@ export class WebSocketService {
       this.ws = new WebSocket(environment.wsUrl);
 
       this.ws.onopen = () => {
-        this.connectionStatus.next(true);
+        this.ngZone.run(() => {
+          this.connectionStatus.next(true);
+        });
         // Start heartbeat
         this.startHeartbeat();
       };
@@ -32,14 +36,18 @@ export class WebSocketService {
       this.ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          this.messagesSubject.next(msg);
+          this.ngZone.run(() => {
+            this.messagesSubject.next(msg);
+          });
         } catch (e) {
           console.error('WebSocket parse error:', e);
         }
       };
 
       this.ws.onclose = () => {
-        this.connectionStatus.next(false);
+        this.ngZone.run(() => {
+          this.connectionStatus.next(false);
+        });
         setTimeout(() => this.connect(), this.reconnectInterval);
       };
 
@@ -63,6 +71,7 @@ export class WebSocketService {
   }
 
   disconnect(): void {
+    clearInterval(this.heartbeatTimer);
     this.ws?.close();
     this.ws = null;
   }

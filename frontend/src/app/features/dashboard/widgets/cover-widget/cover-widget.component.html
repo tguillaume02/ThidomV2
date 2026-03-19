@@ -1,0 +1,20 @@
+<div class="cover-control">
+  <div class="cover-slider-row">
+    <mat-icon class="cover-icon">{{ getPosition() > 0 ? 'blinds' : 'blinds_closed' }}</mat-icon>
+    <mat-slider min="0" max="100" step="5" class="cover-slider" discrete>
+      <input matSliderThumb [value]="getPosition()" (valueChange)="onPositionChange($event)" />
+    </mat-slider>
+    <span class="cover-value">{{ getPosition() }}%</span>
+  </div>
+  <div class="cover-presets">
+    <button class="preset-btn" (click)="setPreset(0)" matTooltip="Fermer">
+      <mat-icon>vertical_align_bottom</mat-icon>
+    </button>
+    <button class="preset-btn" (click)="setPreset(50)" matTooltip="50%">
+      <mat-icon>unfold_more</mat-icon>
+    </button>
+    <button class="preset-btn" (click)="setPreset(100)" matTooltip="Ouvrir">
+      <mat-icon>vertical_align_top</mat-icon>
+    </button>
+  </div>
+</div>

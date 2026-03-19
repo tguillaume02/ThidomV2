@@ -81,6 +81,13 @@
               <mat-hint>{{ field.description }}</mat-hint>
             }
           </mat-form-field>
+        } @else if (field.type === 'boolean') {
+          <div class="config-toggle-row">
+            <mat-slide-toggle [(ngModel)]="config[field.key]">{{ field.label }}</mat-slide-toggle>
+            @if (field.description) {
+              <span class="config-toggle-hint">{{ field.description }}</span>
+            }
+          </div>
         } @else if (field.type === 'integer' || field.type === 'number') {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ field.label }}</mat-label>
@@ -98,6 +105,57 @@
             }
           </mat-form-field>
         }
+      }
+    </div>
+  }
+
+  <!-- Refresh interval (only for polling plugins like weather, camera) -->
+  @if (showRefreshInterval) {
+    <div class="config-section">
+      <h3>Frequence de rafraichissement</h3>
+
+      <!-- Preset chips -->
+      <div class="refresh-presets">
+        @for (preset of refreshPresets; track preset.value) {
+          <button type="button"
+                  class="refresh-chip"
+                  [class.active]="isPresetSelected(preset.value)"
+                  (click)="selectPreset(preset.value)">
+            {{ preset.label }}
+          </button>
+        }
+        <button type="button"
+                class="refresh-chip custom-chip"
+                [class.active]="refreshMode === 'custom'"
+                (click)="switchToCustom()">
+          <mat-icon>tune</mat-icon> Personnalise
+        </button>
+      </div>
+
+      <!-- Custom input -->
+      @if (refreshMode === 'custom') {
+        <div class="refresh-custom-row">
+          <mat-form-field appearance="outline" class="refresh-value-field">
+            <mat-label>Valeur</mat-label>
+            <input matInput type="number" [(ngModel)]="customRefreshValue"
+                   (ngModelChange)="onCustomValueChange()" min="1" placeholder="5">
+          </mat-form-field>
+          <mat-button-toggle-group [(ngModel)]="customRefreshUnit"
+                                   (ngModelChange)="onCustomUnitChange()"
+                                   class="refresh-unit-toggle">
+            <mat-button-toggle value="seconds">Sec</mat-button-toggle>
+            <mat-button-toggle value="minutes">Min</mat-button-toggle>
+            <mat-button-toggle value="hours">Heures</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+      }
+
+      <!-- Display result -->
+      @if (refreshInterval != null) {
+        <div class="refresh-result">
+          <mat-icon>schedule</mat-icon>
+          <span>Rafraichissement toutes les <strong>{{ refreshDisplayLabel }}</strong></span>
+        </div>
       }
     </div>
   }

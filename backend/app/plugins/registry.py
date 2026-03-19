@@ -64,6 +64,7 @@ def load_builtin_plugins():
     from app.plugins import mqtt_plugin
     from app.plugins import zigbee_plugin
     from app.plugins import weather_plugin
+    from app.plugins import bourse_plugin
     from app.plugins import virtual_plugin
     from app.plugins import telegram_plugin
     from app.plugins import camera_plugin

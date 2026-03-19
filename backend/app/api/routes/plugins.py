@@ -26,7 +26,19 @@ router = APIRouter()
 @router.get("/", response_model=List[PluginResponse])
 async def get_plugins(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Plugin).order_by(Plugin.name))
-    return result.scalars().all()
+    plugins = result.scalars().all()
+    enriched = []
+    for plugin in plugins:
+        data = PluginResponse.model_validate(plugin).model_dump()
+        plugin_class = PluginRegistry.get_plugin_class(plugin.slug)
+        data["needs_polling"] = plugin_class.needs_polling if plugin_class else False
+        data["needs_hub_config"] = bool(plugin_class and plugin_class.get_hub_config_schema())
+        # Always inject live config_schema / default_config from the plugin class
+        if plugin_class:
+            data["config_schema"] = plugin_class.get_config_schema() or data.get("config_schema")
+            data["default_config"] = plugin_class.get_default_config() or data.get("default_config")
+        enriched.append(data)
+    return enriched
 
 
 @router.get("/available")

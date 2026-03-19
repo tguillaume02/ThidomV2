@@ -1,0 +1,122 @@
+.weather-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weather-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+
+  .weather-temp {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--thidom-green);
+    line-height: 1;
+  }
+
+  .weather-desc {
+    font-size: 0.8rem;
+    color: var(--thidom-text-secondary);
+    text-transform: capitalize;
+  }
+}
+
+.weather-city {
+  font-size: 0.75rem;
+  color: var(--thidom-text-secondary);
+}
+
+.weather-details, .weather-sun {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.weather-detail {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--thidom-text-secondary);
+  }
+
+  span {
+    font-size: 0.73rem;
+    color: var(--thidom-text-secondary);
+  }
+}
+
+.weather-calendar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.weather-chip {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--thidom-text-secondary);
+  border: 1px solid var(--thidom-border);
+
+  &.season {
+    background: rgba(139, 195, 74, 0.12);
+    color: #8bc34a;
+    border-color: rgba(139, 195, 74, 0.3);
+  }
+
+  &.weekend {
+    background: rgba(33, 150, 243, 0.12);
+    color: #42a5f5;
+    border-color: rgba(33, 150, 243, 0.3);
+  }
+
+  &.holiday {
+    background: rgba(255, 152, 0, 0.12);
+    color: #ffa726;
+    border-color: rgba(255, 152, 0, 0.3);
+  }
+}
+
+.weather-vigilance {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .vigilance-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+
+    .vigilance-level {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .vigilance-reason {
+      font-size: 0.68rem;
+      color: var(--thidom-text-secondary);
+    }
+  }
+}

@@ -3,24 +3,24 @@ version: "3.8"
 services:
   backend:
     build: ./backend
-    container_name: thidom-backend
+    container_name: thidomv2-backend
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - thidom-data:/app/data
+      - thidomv2-data:/app/data
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/thidom.db
+      - DATABASE_URL=sqlite+aiosqlite:///./data/thidomv2.db
     restart: unless-stopped
 
   frontend:
     build: ./frontend
-    container_name: thidom-frontend
+    container_name: thidomv2-frontend
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./frontend/ssl:/etc/nginx/ssl:ro
+      - ./frontend/ssl:/usr/local/apache2/ssl:ro
     depends_on:
       - backend
     restart: unless-stopped
@@ -42,5 +42,5 @@ services:
   #     - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=thidom-influx-token
 
 volumes:
-  thidom-data:
+  thidomv2-data:
   # influxdb-data:

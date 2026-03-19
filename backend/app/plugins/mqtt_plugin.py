@@ -223,11 +223,34 @@ class MQTTPlugin(BasePlugin):
                 except (json.JSONDecodeError, UnicodeDecodeError):
                     payload = message.payload.decode("utf-8", errors="replace")
                 self._topic_cache[topic] = payload
+                # Persist to DB, broadcast via WS, trigger scenarios
+                try:
+                    asyncio.create_task(self._persist_state(topic, payload))
+                except Exception:
+                    logger.exception("Failed to schedule DB persistence for MQTT topic '%s'", topic)
         except asyncio.CancelledError:
             pass
         except Exception as exc:
             logger.error(f"MQTT listener error: {exc}")
             self._update_status(False, f"Listener error: {exc}")
+
+    async def _persist_state(self, topic: str, payload: Any):
+        """Persist an MQTT message to DB via the shared bridge."""
+        from app.services.plugin_state_bridge import push_state_update
+
+        # Build a ThiDom state dict from the payload
+        if isinstance(payload, dict):
+            state = dict(payload)
+        else:
+            state = {"raw": payload}
+
+        def match_fn(cfg: dict) -> bool:
+            topic_state = cfg.get("topic_state", "")
+            if not topic_state:
+                return False
+            return topic_state == topic
+
+        await push_state_update("mqtt", state, match_fn)
 
     async def _publish(self, topic: str, payload: Any, qos: int = 0):
         if not self._client:

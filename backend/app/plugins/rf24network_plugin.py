@@ -398,6 +398,12 @@ class RF24NetworkPlugin(BasePlugin):
                                 cache_state["voltage"] = vcc_val
                                 cache_state["battery"] = vcc_val
                         logger.debug("RF24 Vcc for GUID %s: %s V", guid, vcc_val)
+                        # Persist Vcc into all DB devices sharing the same GUID
+                        try:
+                            vcc_state = {"voltage": vcc_val, "battery": vcc_val}
+                            asyncio.create_task(self._persist_vcc(guid, vcc_state))
+                        except Exception:
+                            logger.exception("Failed to schedule Vcc persistence for GUID %s", guid)
                     else:
                         key = self._cache_key(
                             parsed["node_id"], guid, wid, parsed["pin_id"],
@@ -410,6 +416,11 @@ class RF24NetworkPlugin(BasePlugin):
                             state["battery"] = vcc["battery"]
                         self._state_cache[key] = state
                         logger.debug("RF24 received: %s -> %s", key, state)
+                        # Persist to DB, broadcast via WS, trigger scenarios
+                        try:
+                            asyncio.create_task(self._persist_device_state(parsed, state))
+                        except Exception:
+                            logger.exception("Failed to schedule DB persistence for RF24 message")
                 else:
                     logger.debug("RF24 unrecognised line: %s", raw)
         except asyncio.CancelledError:
@@ -548,3 +559,34 @@ class RF24NetworkPlugin(BasePlugin):
             return await self.set_state(device_config, dict(current, value=value))
 
         return await self.get_state(device_config)
+
+    async def _persist_device_state(self, parsed: dict, state: dict):
+        """Persist a parsed RF24 device state update to DB via the shared bridge."""
+        from app.services.plugin_state_bridge import push_state_update
+        guid = str(parsed.get("guid", ""))
+        wid = str(parsed.get("widget_id", ""))
+        pin_id = str(parsed.get("pin_id", ""))
+        node_id = str(parsed.get("node_id", ""))
+
+        def match_fn(cfg: dict) -> bool:
+            if str(cfg.get("device_guid", "")) != guid:
+                return False
+            if str(cfg.get("widget_id", "")) != wid:
+                return False
+            if str(cfg.get("pin_id", "")) != pin_id:
+                return False
+            cfg_node = cfg.get("node_id")
+            if cfg_node and str(cfg_node) != node_id:
+                return False
+            return True
+
+        await push_state_update("rf24network", state, match_fn)
+
+    async def _persist_vcc(self, guid: str, vcc_state: dict):
+        """Persist Vcc voltage into all DB devices sharing the same GUID."""
+        from app.services.plugin_state_bridge import push_state_update
+        await push_state_update(
+            "rf24network",
+            vcc_state,
+            lambda cfg: str(cfg.get("device_guid", "")) == guid,
+        )

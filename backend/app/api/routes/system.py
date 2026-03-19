@@ -1,4 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.core.security import get_current_user
+from app.models.user import User
+from app.services.update_service import update_service
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,3 +29,21 @@ async def list_serial_ports():
     except Exception as exc:
         logger.error("Error listing serial ports: %s", exc)
         return []
+
+
+@router.get("/check-update")
+async def check_update():
+    """Check GitHub for a newer version."""
+    return await update_service.check_for_update()
+
+
+@router.post("/apply-update")
+async def apply_update(current_user: User = Depends(get_current_user)):
+    """Apply the available update (git pull). Requires authentication."""
+    return await update_service.apply_update()
+
+
+@router.get("/update-status")
+async def update_status():
+    """Return cached update status without querying GitHub."""
+    return update_service.get_status()

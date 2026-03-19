@@ -1,0 +1,73 @@
+<div class="weather-widget">
+  <div class="weather-main">
+    <span class="weather-temp" *ngIf="device.state?.temperature !== undefined">
+      {{ device.state.temperature }}°C
+    </span>
+    <span class="weather-desc" *ngIf="getDescription()">{{ getDescription() }}</span>
+  </div>
+
+  <div class="weather-city" *ngIf="getCityName()">{{ getCityName() }}</div>
+
+  <div class="weather-details">
+    <div class="weather-detail" *ngIf="device.state?.feels_like !== undefined">
+      <mat-icon>device_thermostat</mat-icon><span>Ressenti {{ device.state.feels_like }}°C</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.humidity !== undefined">
+      <mat-icon>water_drop</mat-icon><span>{{ device.state.humidity }}%</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.wind_speed !== undefined">
+      <mat-icon>air</mat-icon><span>{{ device.state.wind_speed }} km/h</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.wind_speed_gust !== undefined">
+      <mat-icon>air</mat-icon><span>Rafales {{ device.state.wind_speed_gust }} km/h</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.pressure !== undefined">
+      <mat-icon>compress</mat-icon><span>{{ device.state.pressure }} hPa</span>
+    </div>
+    <div class="weather-detail" *ngIf="hasMinMax()">
+      <mat-icon>thermostat</mat-icon>
+      <span>Min {{ device.state.temperature_min }}° / Max {{ device.state.temperature_max }}°</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.rain_1h !== undefined">
+      <mat-icon>grain</mat-icon><span>Pluie 1h {{ device.state.rain_1h }} mm</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.precipitation_24h !== undefined">
+      <mat-icon>grain</mat-icon><span>Pluie 24h {{ device.state.precipitation_24h }} mm</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.cloud_cover !== undefined">
+      <mat-icon>cloud</mat-icon><span>Couverture {{ device.state.cloud_cover }}%</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.uv_index !== undefined">
+      <mat-icon>wb_sunny</mat-icon><span>UV {{ device.state.uv_index }}</span>
+    </div>
+  </div>
+
+  <div class="weather-sun" *ngIf="device.state?.sunrise || device.state?.sunset">
+    <div class="weather-detail" *ngIf="device.state?.sunrise">
+      <mat-icon>wb_twilight</mat-icon><span>{{ device.state.sunrise }}</span>
+    </div>
+    <div class="weather-detail" *ngIf="device.state?.sunset">
+      <mat-icon>nights_stay</mat-icon><span>{{ device.state.sunset }}</span>
+    </div>
+  </div>
+
+  <div class="weather-calendar">
+    <span class="weather-chip" *ngIf="device.state?.day_name">{{ device.state.day_name }}</span>
+    <span class="weather-chip season" *ngIf="device.state?.season">{{ device.state.season }}</span>
+    <span class="weather-chip weekend" *ngIf="device.state?.is_weekend">Weekend</span>
+    <span class="weather-chip holiday" *ngIf="device.state?.is_school_holiday">
+      {{ device.state.school_holiday }}
+    </span>
+  </div>
+
+  <div class="weather-vigilance" *ngIf="device.state?.vigilance"
+       [style.border-color]="getVigilanceColor()">
+    <mat-icon [style.color]="getVigilanceColor()">warning</mat-icon>
+    <div class="vigilance-info">
+      <span class="vigilance-level" [style.color]="getVigilanceColor()">
+        Vigilance {{ device.state.vigilance.color }}
+      </span>
+      <span class="vigilance-reason">{{ getVigilanceReason() }}</span>
+    </div>
+  </div>
+</div>

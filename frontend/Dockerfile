@@ -8,9 +8,20 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM nginx:alpine
-COPY --from=build /app/dist/thidom/browser /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+FROM httpd:alpine
+# Enable required Apache modules
+RUN sed -i \
+    -e 's/^#\(LoadModule rewrite_module\)/\1/' \
+    -e 's/^#\(LoadModule proxy_module\)/\1/' \
+    -e 's/^#\(LoadModule proxy_http_module\)/\1/' \
+    -e 's/^#\(LoadModule proxy_wstunnel_module\)/\1/' \
+    -e 's/^#\(LoadModule ssl_module\)/\1/' \
+    -e 's/^#\(LoadModule headers_module\)/\1/' \
+    /usr/local/apache2/conf/httpd.conf && \
+    echo "Include conf/extra/thidomv2.conf" >> /usr/local/apache2/conf/httpd.conf
+
+COPY --from=build /app/dist/thidom/browser /usr/local/apache2/htdocs/
+COPY apache-docker.conf /usr/local/apache2/conf/extra/thidomv2.conf
 
 EXPOSE 80
 EXPOSE 443

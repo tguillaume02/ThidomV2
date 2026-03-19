@@ -84,15 +84,15 @@ html, body {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
 }
 
 .thidom-card {
   background: var(--thidom-bg-card);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--thidom-border);
-  padding: 20px;
+  padding: 14px;
   transition: transform 0.2s, box-shadow 0.2s;
 
   &:hover {
