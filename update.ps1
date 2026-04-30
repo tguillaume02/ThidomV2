@@ -47,5 +47,15 @@ docker compose -f $composeFile up -d --remove-orphans
 Log "Nettoyage des anciennes images..."
 docker image prune -f | Out-Null
 
+# ---------- Ecriture de backend/VERSION ----------
+$versionDst = Join-Path $PSScriptRoot "backend\VERSION"
+New-Item -ItemType Directory -Path (Split-Path $versionDst) -Force | Out-Null
+@"
+tag=$Tag
+sha=
+built=$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+mode=docker
+"@ | Set-Content -Path $versionDst -Encoding ASCII
+
 Log "Mise a jour terminee."
 docker compose -f $composeFile ps

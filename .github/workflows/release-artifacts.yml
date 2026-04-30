@@ -86,36 +86,35 @@ jobs:
           cd release
           zip -r ../thidomv2-release.zip thidomv2
 
-      # ---------- Publication ----------
-      - name: Determine release info
-        id: relinfo
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-            echo "name=ThiDomV2 ${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=latest-master" >> "$GITHUB_OUTPUT"
-            echo "name=ThiDomV2 (rolling master)" >> "$GITHUB_OUTPUT"
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Pour la release rolling on supprime l'ancienne pour pouvoir recreer
-      - name: Delete previous rolling release (master only)
-        if: steps.relinfo.outputs.prerelease == 'true'
+      # ---------- Publication via gh CLI (plus verbeux et debugable) ----------
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete latest-master --cleanup-tag --yes || true
+          set -euo pipefail
+          ls -la *.zip
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.relinfo.outputs.tag }}
-          name: ${{ steps.relinfo.outputs.name }}
-          prerelease: ${{ steps.relinfo.outputs.prerelease }}
-          make_latest: ${{ steps.relinfo.outputs.prerelease == 'false' }}
-          files: |
-            thidomv2-release.zip
-            frontend-dist.zip
-            backend.zip
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            NAME="ThiDomV2 ${TAG}"
+            FLAGS="--latest"
+          else
+            TAG="latest-master"
+            NAME="ThiDomV2 (rolling master)"
+            FLAGS="--prerelease"
+            echo "Suppression de l'ancienne release rolling (si elle existe)..."
+            gh release delete "$TAG" --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+          fi
+
+          echo "Creation de la release '$TAG'..."
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$NAME" \
+            --notes "Build automatique depuis ${GITHUB_REF} (${GITHUB_SHA::7})" \
+            $FLAGS \
+            thidomv2-release.zip frontend-dist.zip backend.zip
+
+          echo "Release publiee :"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY"
+

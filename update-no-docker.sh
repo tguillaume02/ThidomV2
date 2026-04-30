@@ -144,4 +144,16 @@ if systemctl list-unit-files | grep -q "^${APACHE_SVC}\."; then
   sudo systemctl reload "$APACHE_SVC" || sudo systemctl restart "$APACHE_SVC"
 fi
 
+# ---------- Ecriture de backend/VERSION ----------
+# Permet au backend de connaitre la version installee (utilise par update_service).
+VERSION_DST="$INSTALL_DIR/backend/VERSION"
+SHA=$(grep -E '^sha:'   "$SRC/MANIFEST.txt" 2>/dev/null | awk '{print $2}' | cut -c1-7)
+BUILT=$(grep -E '^built:' "$SRC/MANIFEST.txt" 2>/dev/null | awk '{print $2}')
+sudo tee "$VERSION_DST" >/dev/null <<EOF
+tag=$TAG
+sha=$SHA
+built=$BUILT
+mode=no-docker
+EOF
+
 log "Mise a jour terminee."

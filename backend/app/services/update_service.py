@@ -1,231 +1,261 @@
 """
-Application update service — checks GitHub for new versions and applies updates via git pull.
+Application update service.
+
+Strategy
+--------
+- Versioning : the deployment scripts (update.sh / update-no-docker.sh /
+  update.ps1 / update-no-docker.ps1) write the file ``backend/VERSION`` after
+  every successful deployment. It contains key=value lines, e.g. ::
+
+      tag=latest-master
+      sha=8d3f1c2
+      built=2026-04-15T12:34:56Z
+      mode=no-docker
+
+- Check    : the service queries the GitHub Releases API. It first tries the
+             stable ``/releases/latest`` endpoint, then falls back to the
+             rolling ``/releases/tags/latest-master`` prerelease so the user is
+             always notified of the freshest build available.
+- Apply    : runs the appropriate update script in the background using
+             ``nohup``. The script is expected to pull the latest release,
+             redeploy and restart the backend service itself; this endpoint
+             therefore returns immediately with ``restart_required=true``.
 """
 import asyncio
-import subprocess
 import logging
+import os
+import shlex
+import subprocess
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import httpx
 
-from app.core.config import settings
-
 logger = logging.getLogger(__name__)
 
-# Resolve the project root (two levels up from this file: services/ -> app/ -> backend/)
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+# .../backend/app/services/update_service.py -> .../
+_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = _BACKEND_DIR.parent
+_VERSION_FILE = _BACKEND_DIR / "VERSION"
+
+DEFAULT_REPO = os.environ.get("THIDOM_GH_REPO", "tguillaume02/ThidomV2")
 
 
 class UpdateService:
-    """Checks the remote GitHub repository for newer commits and can apply updates."""
-
     GITHUB_API = "https://api.github.com"
-    CHECK_INTERVAL = 3600  # seconds between automatic checks
+    CHECK_INTERVAL = 3600  # seconds
 
-    def __init__(self):
-        self._owner: str = ""
-        self._repo: str = ""
-        self._branch: str = "master"
+    def __init__(self) -> None:
+        self._repo: str = DEFAULT_REPO
         self._latest_remote: Optional[Dict[str, Any]] = None
         self._last_check: Optional[str] = None
         self._update_available: bool = False
         self._task: Optional[asyncio.Task] = None
 
     # ------------------------------------------------------------------
-    # Initialisation (parse origin URL)
+    # Local version
     # ------------------------------------------------------------------
 
-    def _detect_repo_info(self) -> bool:
-        """Extract owner/repo/branch from the local git config."""
+    def _read_local_version(self) -> Dict[str, str]:
+        """Read backend/VERSION (key=value lines). Returns {} if absent."""
+        info: Dict[str, str] = {}
+        if _VERSION_FILE.exists():
+            try:
+                for line in _VERSION_FILE.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    info[k.strip()] = v.strip()
+            except Exception as exc:
+                logger.warning("Could not read VERSION file: %s", exc)
+        return info
+
+    def _detect_mode(self) -> str:
+        """Detect deployment mode: 'docker' or 'no-docker'."""
+        env_mode = os.environ.get("THIDOM_DEPLOY_MODE", "").lower()
+        if env_mode in ("docker", "no-docker"):
+            return env_mode
+        local = self._read_local_version()
+        if local.get("mode") in ("docker", "no-docker"):
+            return local["mode"]
+        # Fallback heuristic: a docker-compose file *and* a /.dockerenv marker
+        if Path("/.dockerenv").exists():
+            return "docker"
+        return "no-docker"
+
+    # ------------------------------------------------------------------
+    # Remote release lookup
+    # ------------------------------------------------------------------
+
+    async def _fetch_release(self, client: httpx.AsyncClient, path: str) -> Optional[Dict[str, Any]]:
         try:
-            origin = subprocess.check_output(
-                ["git", "remote", "get-url", "origin"],
-                cwd=str(_PROJECT_ROOT),
-                text=True,
-                timeout=5,
-            ).strip()
-
-            # Handle both https and git@ URLs
-            # https://github.com/owner/repo.git
-            # git@github.com:owner/repo.git
-            if "github.com" not in origin:
-                logger.warning("Origin is not a GitHub URL: %s", origin)
-                return False
-
-            if origin.startswith("git@"):
-                path = origin.split(":")[-1]
-            else:
-                path = origin.split("github.com/")[-1]
-            path = path.removesuffix(".git")
-            parts = path.split("/")
-            if len(parts) >= 2:
-                self._owner = parts[0]
-                self._repo = parts[1]
-            else:
-                return False
-
-            # Current branch
-            self._branch = subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                cwd=str(_PROJECT_ROOT),
-                text=True,
-                timeout=5,
-            ).strip()
-
-            logger.info(
-                "Update service: repo=%s/%s branch=%s",
-                self._owner, self._repo, self._branch,
-            )
-            return True
+            r = await client.get(f"{self.GITHUB_API}/repos/{self._repo}/{path}")
         except Exception as exc:
-            logger.warning("Could not detect git repo info: %s", exc)
-            return False
-
-    def _get_local_commit(self) -> Optional[str]:
-        try:
-            return subprocess.check_output(
-                ["git", "rev-parse", "HEAD"],
-                cwd=str(_PROJECT_ROOT),
-                text=True,
-                timeout=5,
-            ).strip()
-        except Exception:
+            logger.warning("Release lookup %s failed: %s", path, exc)
             return None
-
-    # ------------------------------------------------------------------
-    # Check for updates
-    # ------------------------------------------------------------------
+        if r.status_code == 200:
+            return r.json()
+        return None
 
     async def check_for_update(self) -> Dict[str, Any]:
-        """Query GitHub API to compare local HEAD with remote branch HEAD."""
-        if not self._owner:
-            if not self._detect_repo_info():
-                return {"update_available": False, "error": "Impossible de detecter le depot Git"}
+        """Compare backend/VERSION with the latest GitHub Release.
 
-        local_sha = self._get_local_commit()
-        if not local_sha:
-            return {"update_available": False, "error": "Impossible de lire le commit local"}
+        Returns a payload compatible with the existing `update-banner` component:
+        ``update_available``, ``remote_sha``, ``remote_message``,
+        ``remote_author``, ``remote_date``, ``last_check``.
+        """
+        local = self._read_local_version()
+        local_tag = local.get("tag", "")
+        local_sha = local.get("sha", "")
 
-        url = f"{self.GITHUB_API}/repos/{self._owner}/{self._repo}/commits/{self._branch}"
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                r = await client.get(url)
-            if r.status_code != 200:
-                return {"update_available": False, "error": f"GitHub API: {r.status_code}"}
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            release = await self._fetch_release(client, "releases/latest")
+            if release is None:
+                # No stable release yet -> try the rolling prerelease
+                release = await self._fetch_release(client, "releases/tags/latest-master")
 
-            data = r.json()
-            remote_sha = data.get("sha", "")
-            commit_info = data.get("commit", {})
-            message = commit_info.get("message", "")
-            author = commit_info.get("author", {}).get("name", "")
-            date = commit_info.get("author", {}).get("date", "")
+        if release is None:
+            return {"update_available": False, "error": "Aucune release disponible sur GitHub."}
 
-            self._latest_remote = {
-                "sha": remote_sha,
-                "message": message,
-                "author": author,
-                "date": date,
-            }
-            self._last_check = datetime.now(timezone.utc).isoformat()
-            self._update_available = remote_sha != local_sha
+        remote_tag = release.get("tag_name", "")
+        remote_name = release.get("name") or remote_tag
+        remote_date = release.get("published_at") or release.get("created_at") or ""
+        remote_author = (release.get("author") or {}).get("login", "")
+        body = (release.get("body") or "").strip()
+        # Try to extract sha from the body ("Build automatique depuis ... (1234567)")
+        remote_sha = ""
+        if "(" in body and ")" in body:
+            try:
+                remote_sha = body.rsplit("(", 1)[1].split(")", 1)[0]
+            except Exception:
+                pass
 
-            return {
-                "update_available": self._update_available,
-                "local_sha": local_sha[:8],
-                "remote_sha": remote_sha[:8],
-                "remote_message": message.split("\n")[0][:120],
-                "remote_author": author,
-                "remote_date": date,
-                "last_check": self._last_check,
-            }
-        except Exception as exc:
-            logger.warning("Update check failed: %s", exc)
-            return {"update_available": False, "error": str(exc)}
+        # An update is "available" when the remote tag differs from the local one,
+        # or when local is unknown (fresh install never run through update*).
+        self._update_available = bool(remote_tag) and remote_tag != local_tag and \
+            (not local_sha or not remote_sha or remote_sha != local_sha)
+
+        self._latest_remote = {
+            "tag": remote_tag,
+            "name": remote_name,
+            "sha": remote_sha,
+            "date": remote_date,
+            "author": remote_author,
+        }
+        self._last_check = datetime.now(timezone.utc).isoformat()
+
+        return {
+            "update_available": self._update_available,
+            "local_tag": local_tag,
+            "local_sha": local_sha,
+            "remote_sha": remote_sha or remote_tag,
+            "remote_message": remote_name,
+            "remote_author": remote_author,
+            "remote_date": remote_date,
+            "last_check": self._last_check,
+        }
 
     # ------------------------------------------------------------------
     # Apply update
     # ------------------------------------------------------------------
 
+    def _resolve_script(self) -> Optional[Path]:
+        mode = self._detect_mode()
+        candidates = []
+        if mode == "docker":
+            candidates = ["update.sh", "update.ps1"]
+        else:
+            candidates = ["update-no-docker.sh", "update-no-docker.ps1"]
+
+        roots = [
+            Path(os.environ.get("THIDOM_INSTALL_DIR", "")) if os.environ.get("THIDOM_INSTALL_DIR") else None,
+            _PROJECT_ROOT,                       # development repo layout
+            Path("/opt/thidomv2"),                # standard Linux install dir
+        ]
+        for root in roots:
+            if root is None:
+                continue
+            for name in candidates:
+                p = root / name
+                if p.exists():
+                    return p
+        return None
+
     async def apply_update(self) -> Dict[str, Any]:
-        """Run git pull to apply the update, then return result."""
-        try:
-            result = await asyncio.to_thread(
-                subprocess.run,
-                ["git", "pull", "--ff-only"],
-                cwd=str(_PROJECT_ROOT),
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            success = result.returncode == 0
-            output = result.stdout.strip() or result.stderr.strip()
-
-            if success:
-                self._update_available = False
-                logger.info("Update applied: %s", output)
-
-                # Install any new Python dependencies
-                await self._pip_install()
-                # Install any new frontend dependencies
-                await self._npm_install()
-            else:
-                logger.error("Update failed: %s", output)
-
+        """Trigger the deployment script in the background and return immediately."""
+        script = self._resolve_script()
+        if script is None:
             return {
-                "success": success,
-                "output": output,
-                "restart_required": success,
+                "success": False,
+                "output": "Aucun script de mise a jour trouve (update.sh / update-no-docker.sh).",
+                "restart_required": False,
+            }
+
+        try:
+            log_path = _BACKEND_DIR / "update.log"
+            if script.suffix == ".ps1":
+                cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)]
+                shell = False
+            else:
+                # nohup so the script survives the backend service restart triggered by itself
+                cmd_line = f"nohup sudo -n {shlex.quote(str(script))} >> {shlex.quote(str(log_path))} 2>&1 &"
+                cmd = ["bash", "-lc", cmd_line]
+                shell = False
+
+            await asyncio.to_thread(
+                subprocess.Popen,
+                cmd,
+                cwd=str(script.parent),
+                shell=shell,
+                start_new_session=True,
+            )
+            logger.info("Update script launched: %s (logs: %s)", script, log_path)
+            return {
+                "success": True,
+                "output": f"Script lance en arriere-plan ({script.name}). Voir {log_path}.",
+                "restart_required": True,
             }
         except Exception as exc:
-            logger.error("Update apply error: %s", exc)
+            logger.error("Failed to launch update script: %s", exc)
             return {"success": False, "output": str(exc), "restart_required": False}
 
-    async def _pip_install(self):
-        """Re-install Python deps if requirements.txt changed."""
-        req_file = _PROJECT_ROOT / "requirements.txt"
-        if not req_file.exists():
-            return
-        try:
-            import sys
-            await asyncio.to_thread(
-                subprocess.run,
-                [sys.executable, "-m", "pip", "install", "-r", str(req_file), "-q"],
-                cwd=str(_PROJECT_ROOT),
-                timeout=120,
-            )
-            logger.info("pip install -r requirements.txt completed")
-        except Exception as exc:
-            logger.warning("pip install failed: %s", exc)
-
-    async def _npm_install(self):
-        """Re-install Node deps if package.json changed."""
-        pkg_file = _PROJECT_ROOT.parent / "frontend" / "package.json"
-        if not pkg_file.exists():
-            return
-        try:
-            await asyncio.to_thread(
-                subprocess.run,
-                ["npm", "install", "--prefix", str(pkg_file.parent)],
-                cwd=str(pkg_file.parent),
-                timeout=120,
-            )
-            logger.info("npm install completed")
-        except Exception as exc:
-            logger.warning("npm install failed: %s", exc)
-
     # ------------------------------------------------------------------
-    # Background periodic check
+    # Status
     # ------------------------------------------------------------------
 
-    def start_periodic_check(self):
+    def get_status(self) -> Dict[str, Any]:
+        local = self._read_local_version()
+        return {
+            "update_available": self._update_available,
+            "last_check": self._last_check,
+            "latest_remote": self._latest_remote,
+            "local": local,
+            "repo": self._repo,
+            "mode": self._detect_mode(),
+        }
+
+    def get_version(self) -> Dict[str, Any]:
+        local = self._read_local_version()
+        return {
+            "tag": local.get("tag", "unknown"),
+            "sha": local.get("sha", ""),
+            "built": local.get("built", ""),
+            "mode": self._detect_mode(),
+        }
+
+    # ------------------------------------------------------------------
+    # Periodic background check
+    # ------------------------------------------------------------------
+
+    def start_periodic_check(self) -> None:
         if self._task is not None:
             return
         self._task = asyncio.create_task(self._periodic_loop())
         logger.info("Update periodic check started (every %ds)", self.CHECK_INTERVAL)
 
-    async def stop_periodic_check(self):
+    async def stop_periodic_check(self) -> None:
         if self._task:
             self._task.cancel()
             try:
@@ -234,17 +264,15 @@ class UpdateService:
                 pass
             self._task = None
 
-    async def _periodic_loop(self):
+    async def _periodic_loop(self) -> None:
         try:
             while True:
                 result = await self.check_for_update()
                 if result.get("update_available"):
                     logger.info(
-                        "New version available: %s (%s)",
-                        result.get("remote_sha"),
+                        "New version available: %s",
                         result.get("remote_message"),
                     )
-                    # Broadcast to connected WebSocket clients
                     try:
                         from app.core.websocket import manager
                         await manager.broadcast({
@@ -260,18 +288,6 @@ class UpdateService:
         except asyncio.CancelledError:
             pass
 
-    # ------------------------------------------------------------------
-    # Status
-    # ------------------------------------------------------------------
-
-    def get_status(self) -> Dict[str, Any]:
-        return {
-            "update_available": self._update_available,
-            "last_check": self._last_check,
-            "latest_remote": self._latest_remote,
-            "repo": f"{self._owner}/{self._repo}" if self._owner else None,
-            "branch": self._branch,
-        }
-
 
 update_service = UpdateService()
+

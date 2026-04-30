@@ -134,5 +134,22 @@ if ($apache) {
     Restart-Service -Name $ApacheService
 }
 
+# ---------- Ecriture de backend/VERSION ----------
+$versionDst = Join-Path $backendDst "VERSION"
+$manifest = Join-Path $src "MANIFEST.txt"
+$sha = ""; $built = ""
+if (Test-Path $manifest) {
+    foreach ($line in Get-Content $manifest) {
+        if ($line -match '^\s*sha:\s*(\S+)')   { $sha = $Matches[1].Substring(0,[Math]::Min(7,$Matches[1].Length)) }
+        if ($line -match '^\s*built:\s*(\S+)') { $built = $Matches[1] }
+    }
+}
+@"
+tag=$Tag
+sha=$sha
+built=$built
+mode=no-docker
+"@ | Set-Content -Path $versionDst -Encoding ASCII
+
 Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 Log "Mise a jour terminee."

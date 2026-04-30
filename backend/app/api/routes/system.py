@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user
 from app.models.user import User
 from app.services.update_service import update_service
@@ -7,6 +7,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not getattr(current_user, "is_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reserve aux administrateurs",
+        )
+    return current_user
 
 
 @router.get("/serial-ports")
@@ -31,6 +40,12 @@ async def list_serial_ports():
         return []
 
 
+@router.get("/version")
+async def get_version():
+    """Return the installed version metadata (read from backend/VERSION)."""
+    return update_service.get_version()
+
+
 @router.get("/check-update")
 async def check_update():
     """Check GitHub for a newer version."""
@@ -38,8 +53,8 @@ async def check_update():
 
 
 @router.post("/apply-update")
-async def apply_update(current_user: User = Depends(get_current_user)):
-    """Apply the available update (git pull). Requires authentication."""
+async def apply_update(_: User = Depends(require_admin)):
+    """Apply the available update. Admin only."""
     return await update_service.apply_update()
 
 
@@ -47,3 +62,4 @@ async def apply_update(current_user: User = Depends(get_current_user)):
 async def update_status():
     """Return cached update status without querying GitHub."""
     return update_service.get_status()
+

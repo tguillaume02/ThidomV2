@@ -52,5 +52,15 @@ $DC -f "$COMPOSE_FILE" up -d --remove-orphans
 log "Nettoyage des anciennes images..."
 docker image prune -f >/dev/null 2>&1 || true
 
+# ---------- Ecriture de backend/VERSION ----------
+VERSION_DST="$ROOT_DIR/backend/VERSION"
+mkdir -p "$(dirname "$VERSION_DST")"
+cat > "$VERSION_DST" <<EOF
+tag=$IMAGE_TAG
+sha=
+built=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+mode=docker
+EOF
+
 log "Mise à jour terminée."
 $DC -f "$COMPOSE_FILE" ps
