@@ -1,0 +1,49 @@
+# =============================================================================
+# ThiDomV2 - PRODUCTION docker-compose
+#
+# Utilise les images Docker pré-construites publiées automatiquement sur
+# GitHub Container Registry (ghcr.io) par le workflow GitHub Actions
+# `.github/workflows/docker-publish.yml`.
+#
+# L'utilisateur final n'a JAMAIS besoin de builder localement :
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Variable d'environnement attendue :
+#   GHCR_OWNER  -> propriétaire GitHub du dépôt (ex: tguillaume02)
+#                  Par défaut : tguillaume02
+#   IMAGE_TAG   -> tag à déployer (latest, master, v1.2.3, sha-xxxxxxx)
+#                  Par défaut : latest
+# =============================================================================
+version: "3.8"
+
+services:
+  backend:
+    image: ghcr.io/${GHCR_OWNER:-tguillaume02}/thidomv2-backend:${IMAGE_TAG:-latest}
+    container_name: thidomv2-backend
+    pull_policy: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - thidomv2-data:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/thidomv2.db
+    # En production, on n'utilise pas --reload
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER:-tguillaume02}/thidomv2-frontend:${IMAGE_TAG:-latest}
+    container_name: thidomv2-frontend
+    pull_policy: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/ssl:/usr/local/apache2/ssl:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  thidomv2-data:

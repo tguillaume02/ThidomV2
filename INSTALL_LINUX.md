@@ -1,4 +1,4 @@
-﻿# ThiDomV2 — Installation sur Linux (Ubuntu/Debian)
+# ThiDomV2  --  Installation sur Linux (Ubuntu/Debian)
 
 ---
 
@@ -36,9 +36,14 @@ npm --version        # 10+
 ## 1. Cloner le projet
 
 ```bash
-git clone <url-du-depot> thidom
-cd thidom
+# Cloner dans le home ou /opt (PAS dans /var/www/)
+cd ~
+git clone <url-du-depot> ThiDomV2
+cd ThiDomV2
 ```
+
+> **Important :** Le code source doit etre dans un dossier utilisateur (`~/ThiDomV2` ou `/opt/ThiDomV2`).
+> Le dossier `/var/www/ThiDomV2/browser/` ne contient que le **build de production** copie par Apache.
 
 ---
 
@@ -112,25 +117,25 @@ uvicorn app.main:app --reload --port 8000
 ### Service systemd (optionnel)
 
 ```bash
-sudo tee /etc/systemd/system/thidom-backend.service << 'EOF'
+sudo tee /etc/systemd/system/ThiDomV2-backend.service << 'EOF'
 [Unit]
-Description=ThiDom Backend
+Description=ThiDomV2 Backend
 After=network.target mysql.service
 
 [Service]
 Type=simple
-User=thidom
-WorkingDirectory=/opt/thidom/backend
-Environment=PATH=/opt/thidom/backend/venv/bin
-ExecStart=/opt/thidom/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+User=www-data
+WorkingDirectory=/opt/ThiDomV2/backend
+Environment=PATH=/opt/ThiDomV2/backend/venv/bin
+ExecStart=/opt/ThiDomV2/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl enable thidom-backend
-sudo systemctl start thidom-backend
+sudo systemctl enable ThiDomV2-backend
+sudo systemctl start ThiDomV2-backend
 ```
 
 ---
@@ -165,22 +170,25 @@ Les fichiers sont generes dans `frontend/dist/thidom/browser/`.
 sudo apt install -y apache2
 sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl headers
 
-# Generer un certificat auto-signe
-sudo mkdir -p /etc/apache2/ssl
-sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-  -keyout /etc/apache2/ssl/server.key -out /etc/apache2/ssl/server.crt \
-  -subj "/CN=localhost/O=ThiDomV2/C=FR"
+# Installer Certbot (Let's Encrypt)
+sudo apt install -y certbot python3-certbot-apache
+
+# Obtenir le certificat SSL (remplacer VOTRE_DOMAINE)
+sudo certbot certonly --apache -d VOTRE_DOMAINE
 
 # Copier les fichiers du build Angular
-sudo mkdir -p /var/www/thidomv2
-sudo cp -r dist/thidom/browser/* /var/www/thidomv2/
+sudo mkdir -p /var/www/ThiDomV2/browser
+sudo cp -r dist/thidom/browser/* /var/www/ThiDomV2/browser/
+sudo chown -R www-data:www-data /var/www/ThiDomV2
 
-# Copier la config Apache
-sudo cp apache.conf /etc/apache2/sites-available/thidomv2.conf
-sudo a2ensite thidomv2.conf
-sudo a2dissite 000-default.conf
+# Copier la config Apache (s'ajoute au site existant, ne cree pas de VirtualHost)
+sudo cp apache.conf /etc/apache2/conf-available/ThiDomV2.conf
+sudo a2enconf ThiDomV2
 sudo apachectl configtest && sudo systemctl reload apache2
 ```
+
+> ThiDomV2 s'integre au VirtualHost existant via un Alias `/ThiDomV2`.
+> Les autres applications sur le port 80/443 ne sont pas affectees.
 
 ---
 

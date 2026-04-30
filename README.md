@@ -1,54 +1,54 @@
-﻿# ?? ThiDom â€” Application de Gestion Domotique
+#  ThiDom  --  Application de Gestion Domotique
 
 <p align="center">
-  <strong>ThiDom</strong> est une application Web complÃ¨te de gestion domotique avec une interface moderne, intuitive et responsive.
+  <strong>ThiDom</strong> est une application Web complète de gestion domotique avec une interface moderne, intuitive et responsive.
 </p>
 
 ---
 
-## ?? Architecture Globale
+##  Architecture Globale
 
 ```
-???????????????????????????????????????????????????????
-?                   Frontend (Angular 17)              ?
-?  ???????????? ???????????? ???????????? ?????????? ?
-?  ?Dashboard ? ? Devices  ? ?Scenarios ? ?  Logs  ? ?
-?  ? (rooms)  ? ? (CRUD)   ? ?(Blockly) ? ?(filter)? ?
-?  ???????????? ???????????? ???????????? ?????????? ?
-?  ???????????? ???????????? ????????????            ?
-?  ?  Rooms   ? ? Plugins  ? ? History  ?            ?
-?  ?  (tree)  ? ? (config) ? ? (charts) ?            ?
-?  ???????????? ???????????? ????????????            ?
-?              Angular Material + SCSS                 ?
-?              WebSocket (temps rÃ©el)                   ?
-???????????????????????????????????????????????????????
-                     ? HTTP REST + WebSocket
-???????????????????????????????????????????????????????
-?                  Backend (Python FastAPI)             ?
-?  ???????????? ???????????? ????????????            ?
-?  ? API REST ? ?WebSocket ? ?Scheduler ?            ?
-?  ? (routes) ? ?  (live)  ? ?(APSched) ?            ?
-?  ???????????? ???????????? ????????????            ?
-?  ???????????? ???????????? ????????????            ?
-?  ? Scenario ? ?  Plugin  ? ?   Log    ?            ?
-?  ?  Engine  ? ? Registry ? ? Service  ?            ?
-?  ???????????? ???????????? ????????????            ?
-?         SQLAlchemy (Async) + Pydantic                ?
-???????????????????????????????????????????????????????
-                     ?
-???????????????????????????????????????????????????????
-?                    Bases de donnÃ©es                   ?
-?  ????????????????         ?????????????????????     ?
-?  ?   SQLite /   ?         ?     InfluxDB      ?     ?
-?  ?  PostgreSQL  ?         ?  (sÃ©ries temp.)   ?     ?
-?  ?  (entitÃ©s)   ?         ?  (historisation)  ?     ?
-?  ????????????????         ?????????????????????     ?
-???????????????????????????????????????????????????????
++-----------------------------------------------------+
+|                   Frontend (Angular 17)              |
+|  +----------+ +----------+ +----------+ +--------+  |
+|  |Dashboard | | Devices  | |Scenarios | |  Logs  |  |
+|  | (rooms)  | | (CRUD)   | |(Blockly) | |(filter)|  |
+|  +----------+ +----------+ +----------+ +--------+  |
+|  +----------+ +----------+ +----------+              |
+|  |  Rooms   | | Plugins  | | History  |              |
+|  |  (tree)  | | (config) | | (charts) |              |
+|  +----------+ +----------+ +----------+              |
+|              Angular Material + SCSS                 |
+|              WebSocket (temps reel)                   |
++-----------------------------------------------------+
+                     | HTTP REST + WebSocket
++-----------------------------------------------------+
+|                  Backend (Python FastAPI)             |
+|  +----------+ +----------+ +----------+              |
+|  | API REST | |WebSocket | |Scheduler |              |
+|  | (routes) | |  (live)  | |(APSched) |              |
+|  +----------+ +----------+ +----------+              |
+|  +----------+ +----------+ +----------+              |
+|  | Scenario | |  Plugin  | |   Log    |              |
+|  |  Engine  | | Registry | | Service  |              |
+|  +----------+ +----------+ +----------+              |
+|         SQLAlchemy (Async) + Pydantic                |
++-----------------------------------------------------+
+                     |
++-----------------------------------------------------+
+|                    Bases de donnees                   |
+|  +--------------+         +-------------------+      |
+|  |   SQLite /   |         |     InfluxDB      |      |
+|  |  PostgreSQL  |         |  (series temp.)   |      |
+|  |  (entites)   |         |  (historisation)  |      |
+|  +--------------+         +-------------------+      |
++-----------------------------------------------------+
 ```
 
 ---
 
-## ?? Stack Technique
+##  Stack Technique
 
 | Couche       | Technologie                                        |
 |-------------|---------------------------------------------------|
@@ -57,74 +57,74 @@
 | **Auth**     | JWT (PyJWT) + bcrypt                              |
 | **BDD**      | SQLite (dev) / MySQL ou PostgreSQL (prod)     |
 | **Time Series** | InfluxDB (historisation)                       |
-| **Temps rÃ©el** | WebSocket natif                                 |
+| **Temps réel** | WebSocket natif                                 |
 | **Scheduler** | APScheduler                                      |
-| **ScÃ©narios** | JSON engine (compatible Blockly) + champs dynamiques |
+| **Scénarios** | JSON engine (compatible Blockly) + champs dynamiques |
 | **Conteneurs** | Docker + Docker Compose                         |
 
 ---
 
-## ?? SchÃ©ma de DonnÃ©es (EntitÃ©s & Relations)
+##  Schéma de Données (Entités & Relations)
 
 ```
-????????????       ????????????       ????????????
-?   User   ?       ?   Room   ?????   ?  Plugin  ?
-????????????       ????????????   ?   ????????????
-? id       ?       ? id       ?   ?   ? id       ?
-? username ?       ? name     ?   ?   ? slug     ?
-? email    ?       ? icon     ?   ?   ? category ?
-? password ?       ? color    ?   ?   ? config_  ?
-? is_admin ?       ? parent_id?????   ?  schema  ?
-????????????       ? order    ?       ?  historize?
-                   ????????????       ????????????
-                        ? 1:N              ? 1:N
-                   ????????????????????????????
-                   ?         Device            ?
-                   ????????????????????????????
-                   ? id        ? room_id      ?
-                   ? name      ? plugin_id    ?
-                   ? type      ? config (JSON)?
-                   ? state     ? historize    ?
-                   ? is_visible? order        ?
-                   ????????????????????????????
-                               ?
-              ???????????????????????????????????
-              ?                ?                ?
-        ?????????????  ???????????????  ???????????????
-        ?  Scenario  ?  ?     Log     ?  ?  Schedule   ?
-        ?????????????  ??????????????  ??????????????
-        ? triggers   ?  ? level      ?  ? type       ?
-        ? conditions ?  ? category   ?  ? cron_expr  ?
-        ? actions    ?  ? message    ?  ? time       ?
-        ? blockly_xml?  ? device_id  ?  ? days_of_wk ?
-        ??????????????  ? scenario_id?  ? action     ?
-                        ??????????????  ??????????????
++----------+       +----------+       +------------+
+|   User   |       |   Room   |--+    |  Plugin    |
++----------+       +----------+  |    +------------+
+| id       |       | id       |  |    | id         |
+| username |       | name     |  |    | slug       |
+| email    |       | icon     |  |    | category   |
+| password |       | color    |  |    | config_    |
+| is_admin |       | parent_id|--+    |  schema    |
++----------+       | order    |       |  historize |
+                   +----------+       +------------+
+                        | 1:N              | 1:N
+                   +-------------------------------+
+                   |         Device                 |
+                   +-------------------------------+
+                   | id        | room_id           |
+                   | name      | plugin_id         |
+                   | type      | config (JSON)     |
+                   | state     | historize         |
+                   | is_visible| order             |
+                   +-------------------------------+
+                               |
+              +----------------+----------------+
+              |                |                |
+        +-----------+  +-------------+  +--------------+
+        |  Scenario |  |     Log     |  |  Schedule    |
+        +-----------+  +-------------+  +--------------+
+        | triggers   |  | level      |  | type         |
+        | conditions |  | category   |  | cron_expr    |
+        | actions    |  | message    |  | time         |
+        | blockly_xml|  | device_id  |  | days_of_wk   |
+        +-----------+   | scenario_id|  | action       |
+                        +-------------+  +--------------+
 ```
 
 ---
 
-## ?? SystÃ¨me de Plugins
+##  Système de Plugins
 
 ### Architecture
 
 ```python
 BasePlugin (ABC)           # Classe abstraite
-â”œâ”€â”€ MQTTPlugin             # ContrÃ´le via MQTT
-â”œâ”€â”€ ZigBeePlugin           # ContrÃ´le ZigBee (Zigbee2MQTT/deCONZ)
-â”œâ”€â”€ RF24NetworkPlugin      # Appareils sans-fil nRF24L01+ via dongle USB
-â”œâ”€â”€ WeatherPlugin          # MÃ©tÃ©o (OpenWeatherMap + MÃ©tÃ©o France + Vigilance)
-â”œâ”€â”€ TelegramPlugin         # Notifications Telegram
-â”œâ”€â”€ VirtualPlugin          # Appareils virtuels (tests/logique)
-â””â”€â”€ ... (extensible)       # Ajouter un fichier = ajouter un plugin
+â"œâ"€â"€ MQTTPlugin             # Contrôle via MQTT
+â"œâ"€â"€ ZigBeePlugin           # Contrôle ZigBee (Zigbee2MQTT/deCONZ)
+â"œâ"€â"€ RF24NetworkPlugin      # Appareils sans-fil nRF24L01+ via dongle USB
+â"œâ"€â"€ WeatherPlugin          # Météo (OpenWeatherMap + Météo France + Vigilance)
+â"œâ"€â"€ TelegramPlugin         # Notifications Telegram
+â"œâ"€â"€ VirtualPlugin          # Appareils virtuels (tests/logique)
+â""â"€â"€ ... (extensible)       # Ajouter un fichier = ajouter un plugin
 ```
 
 ### Ajouter un nouveau plugin
 
-1. CrÃ©er `backend/app/plugins/mon_plugin.py`
-2. HÃ©riter de `BasePlugin`
-3. DÃ©corer avec `@register_plugin`
-4. ImplÃ©menter : `initialize()`, `get_state()`, `set_state()`, `execute_action()`
-5. DÃ©finir `get_config_schema()` (JSON Schema pour l'UI dynamique)
+1. Créer `backend/app/plugins/mon_plugin.py`
+2. Hériter de `BasePlugin`
+3. Décorer avec `@register_plugin`
+4. Implémenter : `initialize()`, `get_state()`, `set_state()`, `execute_action()`
+5. Définir `get_config_schema()` (JSON Schema pour l'UI dynamique)
 
 ```python
 from app.plugins.base_plugin import BasePlugin
@@ -151,48 +151,48 @@ class MonPlugin(BasePlugin):
     async def execute_action(self, device_config, action, params): ...
 ```
 
-### Plugin MÃ©tÃ©o France (Vigilance)
+### Plugin Météo France (Vigilance)
 
-Le plugin Weather intÃ¨gre nativement l'API MÃ©tÃ©o France avec :
-- **Observations** et **prÃ©visions** via l'API rpcache
+Le plugin Weather intègre nativement l'API Météo France avec :
+- **Observations** et **prévisions** via l'API rpcache
 - **Alertes vigilance** (vent, pluie, orages, crues, neige, canicule, grand froid, avalanches, vagues)
-- Support du **code INSEE** et du **numÃ©ro de dÃ©partement**
+- Support du **code INSEE** et du **numéro de département**
 
 ---
 
-## ?? SystÃ¨me de ScÃ©narios
+##  Système de Scénarios
 
-### ModÃ¨le Trigger â†’ Condition â†’ Action
+### Modèle Trigger â†' Condition â†' Action
 
 ```
 DÃ‰CLENCHEUR (trigger)         CONDITION               ACTION
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ â€¢ device_state  â”œâ”€â”€â”€â”€â–º â€¢ device_state   â”œâ”€â”€â”€â”€â–º â€¢ set_device_state  â”‚
-â”‚ â€¢ time          â”‚    â”‚ â€¢ time_range     â”‚    â”‚ â€¢ delay             â”‚
-â”‚ â€¢ event         â”‚    â”‚ â€¢ value_compare  â”‚    â”‚ â€¢ send_notification â”‚
-â”‚ â€¢ cron          â”‚    â”‚ â€¢ AND / OR logic â”‚    â”‚ â€¢ execute_scenario  â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+â"Œâ"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"    â"Œâ"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"    â"Œâ"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"
+â"‚ â€¢ device_state  â"œâ"€â"€â"€â"€â - º â€¢ device_state   â"œâ"€â"€â"€â"€â - º â€¢ set_device_state  â"‚
+â"‚ â€¢ time          â"‚    â"‚ â€¢ time_range     â"‚    â"‚ â€¢ delay             â"‚
+â"‚ â€¢ event         â"‚    â"‚ â€¢ value_compare  â"‚    â"‚ â€¢ send_notification â"‚
+â"‚ â€¢ cron          â"‚    â"‚ â€¢ AND / OR logic â"‚    â"‚ â€¢ execute_scenario  â"‚
+â""â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"˜    â""â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"˜    â""â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"˜
 ```
 
 ### Champs dynamiques
 
 Les champs disponibles dans les triggers et conditions sont **dynamiques** :
-lorsqu'un appareil est sÃ©lectionnÃ© dans l'Ã©diteur Blockly, seuls les champs
-rÃ©ellement prÃ©sents dans son state sont proposÃ©s.
+lorsqu'un appareil est sélectionné dans l'éditeur Blockly, seuls les champs
+réellement présents dans son state sont proposés.
 
-Exemples pour un capteur mÃ©tÃ©o : `temperature`, `humidity`, `wind_speed`,
+Exemples pour un capteur météo : `temperature`, `humidity`, `wind_speed`,
 `vigilance > color`, `vigilance > level`, `season`, `is_weekend`...
 
-Les sous-champs sont accessibles en notation pointÃ©e (`vigilance.color`).
+Les sous-champs sont accessibles en notation pointée (`vigilance.color`).
 
 ### Templates de messages
 
 Les actions de notification supportent des variables dynamiques :
 ```
-{{ device.state.temperature }}        â†’ valeur du trigger device
-{{ device.state.vigilance.color }}    â†’ sous-champ nested
-{{ device.name }}                     â†’ nom de l'appareil
-{{ devices.5.state.humidity }}        â†’ n'importe quel appareil par ID
+{{ device.state.temperature }}        â†' valeur du trigger device
+{{ device.state.vigilance.color }}    â†' sous-champ nested
+{{ device.name }}                     â†' nom de l'appareil
+{{ devices.5.state.humidity }}        â†' n'importe quel appareil par ID
 ```
 
 ### Exemple JSON
@@ -208,21 +208,21 @@ Les actions de notification supportent des variables dynamiques :
   "actions": [
     {"type": "set_device_state", "config": {"device_id": 5, "state": {"power": "on"}}},
     {"type": "delay", "config": {"seconds": 10}},
-    {"type": "send_notification", "config": {"message": "LumiÃ¨re allumÃ©e !"}}
+    {"type": "send_notification", "config": {"message": "Lumière allumée !"}}
   ]
 }
 ```
 
 ---
 
-## ?? DÃ©marrage Rapide
+##  Démarrage Rapide
 
-### Guides d'installation dÃ©taillÃ©s
+### Guides d'installation détaillés
 
-- **[Installation Windows](INSTALL_WINDOWS.md)** â€” PowerShell, certificats, MySQL
-- **[Installation Linux](INSTALL_LINUX.md)** â€” Ubuntu/Debian, systemd, apache
+- **[Installation Windows](INSTALL_WINDOWS.md)**  --  PowerShell, certificats, MySQL
+- **[Installation Linux](INSTALL_LINUX.md)**  --  Ubuntu/Debian, systemd, apache
 
-### PrÃ©requis
+### Prérequis
 
 - Python 3.11+
 - Node.js 20+
@@ -251,9 +251,9 @@ npm start
 
 L'application est accessible sur :
 - **HTTP** : `http://localhost` (port 80)
-- **HTTPS** : `https://localhost` (port 443, nÃ©cessite un certificat SSL)
+- **HTTPS** : `https://localhost` (port 443, nécessite un certificat SSL)
 
-Voir [HOW_INSTALL_AND_EXECUTE.md](HOW_INSTALL_AND_EXECUTE.md) pour les instructions dÃ©taillÃ©es de configuration HTTPS.
+Voir [HOW_INSTALL_AND_EXECUTE.md](HOW_INSTALL_AND_EXECUTE.md) pour les instructions détaillées de configuration HTTPS.
 
 ### Docker Compose
 
@@ -267,88 +267,88 @@ docker-compose up --build
 
 ---
 
-## ?? Structure du Projet
+##  Structure du Projet
 
 ```
 thidom/
-??? backend/
-?   ??? app/
-?   ?   ??? api/routes/         # Routes REST (auth, rooms, devices, ...)
-?   ?   ??? core/               # Config, DB, Security, WebSocket
-?   ?   ??? models/             # SQLAlchemy models
-?   ?   ??? schemas/            # Pydantic schemas
-?   ?   ??? services/           # Business logic (logs, scheduler, scenario engine)
-?   ?   ??? plugins/            # Plugin system (base, registry, implÃ©mentations)
-?   ?   ??? main.py             # Point d'entrÃ©e FastAPI
-?   ??? requirements.txt
-?   ??? Dockerfile
-?   ??? .env
-?
-??? frontend/
-?   ??? src/
-?   ?   ??? app/
-?   ?   ?   ??? core/           # Services, models, guards, interceptors
-?   ?   ?   ??? features/       # Modules fonctionnels
-?   ?   ?   ?   ??? auth/       # Login / Register
-?   ?   ?   ?   ??? dashboard/  # Tableau de bord principal
-?   ?   ?   ?   ??? rooms/      # Gestion des piÃ¨ces
-?   ?   ?   ?   ??? devices/    # Gestion des appareils
-?   ?   ?   ?   ??? plugins/    # Gestion des plugins
-?   ?   ?   ?   ??? scenarios/  # Ã‰diteur de scÃ©narios
-?   ?   ?   ?   ??? schedules/  # Planification
-?   ?   ?   ?   ??? history/    # Historique & graphiques
-?   ?   ?   ?   ??? logs/       # Consultation des logs
-?   ?   ?   ??? layout/         # Sidebar + Toolbar
-?   ?   ??? assets/             # Logo, images
-?   ?   ??? environments/       # Config dev/prod
-?   ?   ??? styles.scss         # ThÃ¨me global (dark, vert ThiDom)
-?   ??? angular.json
-?   ??? package.json
-?   ??? Dockerfile
-?   ??? apache.conf
-?
-??? docker-compose.yml
-??? README.md
++-- backend/
+|   +-- app/
+|   |   +-- api/routes/         # Routes REST (auth, rooms, devices, ...)
+|   |   +-- core/               # Config, DB, Security, WebSocket
+|   |   +-- models/             # SQLAlchemy models
+|   |   +-- schemas/            # Pydantic schemas
+|   |   +-- services/           # Business logic (logs, scheduler, scenario engine)
+|   |   +-- plugins/            # Plugin system (base, registry, implementations)
+|   |   +-- main.py             # Point d'entree FastAPI
+|   +-- requirements.txt
+|   +-- Dockerfile
+|   +-- .env
+|
++-- frontend/
+|   +-- src/
+|   |   +-- app/
+|   |   |   +-- core/           # Services, models, guards, interceptors
+|   |   |   +-- features/       # Modules fonctionnels
+|   |   |   |   +-- auth/       # Login / Register
+|   |   |   |   +-- dashboard/  # Tableau de bord principal
+|   |   |   |   +-- rooms/      # Gestion des pieces
+|   |   |   |   +-- devices/    # Gestion des appareils
+|   |   |   |   +-- plugins/    # Gestion des plugins
+|   |   |   |   +-- scenarios/  # Editeur de scenarios
+|   |   |   |   +-- schedules/  # Planification
+|   |   |   |   +-- history/    # Historique & graphiques
+|   |   |   |   +-- logs/       # Consultation des logs
+|   |   |   +-- layout/         # Sidebar + Toolbar
+|   |   +-- assets/             # Logo, images
+|   |   +-- environments/       # Config dev/prod
+|   |   +-- styles.scss         # Theme global (dark, vert ThiDom)
+|   +-- angular.json
+|   +-- package.json
+|   +-- Dockerfile
+|   +-- apache.conf
+|
++-- docker-compose.yml
++-- README.md
 ```
 
 ---
 
-## ?? SÃ©curitÃ© & ScalabilitÃ©
+##  Sécurité & Scalabilité
 
-### SÃ©curitÃ©
-- **HTTPS / TLS** avec certificat SSL (auto-signÃ© en dev, Let's Encrypt en prod)
+### Sécurité
+- **HTTPS / TLS** avec certificat SSL (auto-signé en dev, Let's Encrypt en prod)
 - **Authentification JWT** avec expiration configurable
 - **Hachage bcrypt** des mots de passe
-- **CORS** configurÃ© (origines autorisÃ©es)
-- **Validation Pydantic** sur toutes les entrÃ©es API
+- **CORS** configuré (origines autorisées)
+- **Validation Pydantic** sur toutes les entrées API
 - **Guards Angular** pour la protection des routes frontend
 - **Intercepteur HTTP** pour injection automatique du token
 
-### ScalabilitÃ©
-- **Architecture modulaire** : chaque plugin est indÃ©pendant
+### Scalabilité
+- **Architecture modulaire** : chaque plugin est indépendant
 - **Async/await** sur tout le backend (FastAPI + SQLAlchemy async)
-- **WebSocket** pour les mises Ã  jour temps rÃ©el (pas de polling)
-- **SQLite â†’ MySQL / PostgreSQL** : changement d'une ligne de config
-- **InfluxDB** pour les donnÃ©es de sÃ©ries temporelles (historisation)
-- **Docker Compose** pour le dÃ©ploiement conteneurisÃ©
+- **WebSocket** pour les mises à jour temps réel (pas de polling)
+- **SQLite â†' MySQL / PostgreSQL** : changement d'une ligne de config
+- **InfluxDB** pour les données de séries temporelles (historisation)
+- **Docker Compose** pour le déploiement conteneurisé
 - **Lazy loading Angular** pour des performances frontend optimales
 
 ---
 
-## ?? Recommandations UX/UI
+##  Recommandations UX/UI
 
-- **ThÃ¨me sombre** avec accent vert (#00E676) â€” identitÃ© ThiDom
-- **Navigation latÃ©rale** toujours visible avec icÃ´nes + labels
-- **Dashboard room-based** : vue par piÃ¨ce avec filtres
+- **Thème sombre** avec accent vert (#00E676)  --  identité ThiDom
+- **Navigation latérale** toujours visible avec icônes + labels
+- **Dashboard room-based** : vue par pièce avec filtres
 - **Actions rapides** : toggle ON/OFF en un clic sur les appareils
-- **Ã‰tat temps rÃ©el** : indicateur WebSocket dans le sidebar
-- **Formulaires dynamiques** : config plugin auto-gÃ©nÃ©rÃ©e depuis le JSON Schema
+- **Ã‰tat temps réel** : indicateur WebSocket dans le sidebar
+- **Formulaires dynamiques** : config plugin auto-générée depuis le JSON Schema
 - **Responsive** : grilles CSS auto-adaptatives
 - **Animations** : transitions douces (fade-in, hover, transform)
 
 ---
 
-## ?? Licence
+##  Licence
 
-Projet privÃ© â€” ThiDom Â© 2025
+Projet privé  --  ThiDom © 2025
 

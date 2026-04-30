@@ -18,10 +18,10 @@ RUN sed -i \
     -e 's/^#\(LoadModule ssl_module\)/\1/' \
     -e 's/^#\(LoadModule headers_module\)/\1/' \
     /usr/local/apache2/conf/httpd.conf && \
-    echo "Include conf/extra/thidomv2.conf" >> /usr/local/apache2/conf/httpd.conf
+    echo "Include conf/extra/ThiDomV2.conf" >> /usr/local/apache2/conf/httpd.conf
 
-COPY --from=build /app/dist/thidom/browser /usr/local/apache2/htdocs/
-COPY apache-docker.conf /usr/local/apache2/conf/extra/thidomv2.conf
+COPY --from=build /app/dist/thidom/browser /usr/local/apache2/htdocs/browser/
+COPY apache-docker.conf /usr/local/apache2/conf/extra/ThiDomV2.conf
 
 EXPOSE 80
 EXPOSE 443

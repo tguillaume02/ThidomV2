@@ -1,18 +1,15 @@
 {
-  "/api/ws": {
+  "/ThiDomV2/api/ws": {
     "target": "http://localhost:8000",
     "secure": false,
     "changeOrigin": true,
-    "ws": true
+    "ws": true,
+    "pathRewrite": { "^/ThiDomV2": "" }
   },
-  "/api": {
+  "/ThiDomV2/api": {
     "target": "http://localhost:8000",
     "secure": false,
-    "changeOrigin": true
-  },
-  "/ws": {
-    "target": "ws://localhost:8000",
-    "secure": false,
-    "ws": true
+    "changeOrigin": true,
+    "pathRewrite": { "^/ThiDomV2": "" }
   }
 }

@@ -1,0 +1,121 @@
+name: Build & Publish release artifacts (no Docker)
+
+# Build le frontend Angular et package le backend Python en archives ZIP,
+# puis publie le tout dans une GitHub Release.
+#
+# Triggers :
+#   - push sur master/main  -> release "rolling" `latest-master` (prerelease)
+#   - tag v*.*.*           -> release stable avec le tag
+#
+# L'utilisateur final telecharge l'archive via update-no-docker.sh / .ps1
+# et la deploie sur Apache + venv Python — sans Docker, sans Node, sans npm.
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------- Frontend (Angular) ----------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend (production)
+        working-directory: frontend
+        run: npm run build -- --configuration production
+
+      - name: Package frontend dist
+        run: |
+          cd frontend/dist/thidom
+          zip -r "$GITHUB_WORKSPACE/frontend-dist.zip" browser
+          cd "$GITHUB_WORKSPACE"
+          # Inclure aussi la config Apache prete a l'emploi
+          zip -j frontend-dist.zip frontend/apache.conf
+
+      # ---------- Backend (Python — pas de compilation) ----------
+      - name: Package backend sources
+        run: |
+          zip -r backend.zip backend \
+            -x 'backend/venv/*' \
+               'backend/__pycache__/*' \
+               'backend/**/__pycache__/*' \
+               'backend/*.db' \
+               'backend/.env'
+
+      # ---------- Archive combinee ----------
+      - name: Create combined release archive
+        run: |
+          mkdir -p release/thidomv2
+          cp -r frontend/dist/thidom/browser release/thidomv2/frontend
+          cp frontend/apache.conf            release/thidomv2/apache.conf
+          rsync -a --exclude 'venv' \
+                   --exclude '__pycache__' \
+                   --exclude '*.db' \
+                   --exclude '.env' \
+                   backend release/thidomv2/
+          cp backend/requirements.txt release/thidomv2/requirements.txt
+          # Manifest avec metadata du build
+          cat > release/thidomv2/MANIFEST.txt <<EOF
+          ThiDomV2 release
+          ref:    ${{ github.ref }}
+          sha:    ${{ github.sha }}
+          built:  $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          EOF
+          cd release
+          zip -r ../thidomv2-release.zip thidomv2
+
+      # ---------- Publication ----------
+      - name: Determine release info
+        id: relinfo
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            echo "name=ThiDomV2 ${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest-master" >> "$GITHUB_OUTPUT"
+            echo "name=ThiDomV2 (rolling master)" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Pour la release rolling on supprime l'ancienne pour pouvoir recreer
+      - name: Delete previous rolling release (master only)
+        if: steps.relinfo.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest-master --cleanup-tag --yes || true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.relinfo.outputs.tag }}
+          name: ${{ steps.relinfo.outputs.name }}
+          prerelease: ${{ steps.relinfo.outputs.prerelease }}
+          make_latest: ${{ steps.relinfo.outputs.prerelease == 'false' }}
+          files: |
+            thidomv2-release.zip
+            frontend-dist.zip
+            backend.zip

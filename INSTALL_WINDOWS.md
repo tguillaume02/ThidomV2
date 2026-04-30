@@ -1,4 +1,4 @@
-﻿# ThiDom — Installation sur Windows
+# ThiDom  --  Installation sur Windows
 
 ---
 

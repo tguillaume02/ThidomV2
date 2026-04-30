@@ -1,4 +1,4 @@
-﻿# ThiDom â€” Guide d'installation et d'exÃ©cution
+# ThiDom  --  Guide d'installation et d'exécution
 
 > **Guides specifiques par plateforme :**
 > - [Installation Windows](INSTALL_WINDOWS.md)
@@ -6,9 +6,9 @@
 
 ---
 
-## PrÃ©requis
+## Prérequis
 
-| Outil                  | Version minimale | VÃ©rification       |
+| Outil                  | Version minimale | Vérification       |
 |------------------------|------------------|---------------------|
 | Python                 | 3.11+            | `python --version`  |
 | Node.js                | 20+              | `node --version`    |
@@ -16,7 +16,7 @@
 | Docker *(optionnel)*   | 24+              | `docker --version`  |
 | MySQL *(optionnel)*    | 8.0+             | `mysql --version`   |
 
-> **Note :** Le frontend Ã©coute sur le **port 80** (HTTP) et le **port 443** (HTTPS).
+> **Note :** Le frontend écoute sur le **port 80** (HTTP) et le **port 443** (HTTPS).
 > Sous Windows, lancez votre terminal en **Administrateur** si ces ports sont restreints.
 
 ---
@@ -28,14 +28,14 @@
 ```powershell
 cd backend
 
-# CrÃ©er l'environnement virtuel
+# Créer l'environnement virtuel
 python -m venv venv
 
 # Activer l'environnement
 .\venv\Scripts\activate
 
-# Installer les dÃ©pendances
-# (les flags --trusted-host sont nÃ©cessaires derriÃ¨re un proxy d'entreprise avec certificat auto-signÃ©)
+# Installer les dépendances
+# (les flags --trusted-host sont nécessaires derrière un proxy d'entreprise avec certificat auto-signé)
 pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.python.org -r requirements.txt
 ```
 
@@ -44,12 +44,13 @@ pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org --trus
 ```powershell
 cd backend
 .\venv\Scripts\activate
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 | URL                         | Description                  |
 |-----------------------------|------------------------------|
 | http://localhost:8000       | API REST                     |
+| http://<IP>:8000            | API REST (reseau local)      |
 | http://localhost:8000/docs  | Documentation Swagger (auto) |
 | http://localhost:8000/redoc | Documentation ReDoc (auto)   |
 
@@ -71,18 +72,19 @@ cd frontend
 npm start
 ```
 
-| URL                | Description                |
-|--------------------|----------------------------|
-| http://localhost    | Application ThiDom (HTTP)  |
+| URL                          | Description                |
+|------------------------------|----------------------------|
+| http://localhost/ThiDomV2/   | Application ThiDom (HTTP)  |
+| http://<IP>/ThiDomV2/        | Acces reseau local         |
 
 ### Lancement en HTTPS (port 443)
 
-Pour servir en HTTPS, gÃ©nÃ©rez d'abord un certificat auto-signÃ© puis lancez avec l'option `--ssl` :
+Pour servir en HTTPS, générez d'abord un certificat auto-signé puis lancez avec l'option `--ssl` :
 
 ```powershell
 cd frontend
 
-# GÃ©nÃ©rer le certificat auto-signÃ© (une seule fois)
+# Générer le certificat auto-signé (une seule fois)
 # Option A : avec openssl
 openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt -subj "/CN=localhost/O=ThiDom/C=FR"
 
@@ -91,23 +93,24 @@ $cert = New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "Cert:
 Export-PfxCertificate -Cert $cert -FilePath "ssl\server.pfx" -Password (ConvertTo-SecureString "thidom" -Force -AsPlainText)
 
 # Lancer en HTTPS
-npx ng serve --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key
+npx ng serve --host 0.0.0.0 --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key --serve-path /ThiDomV2/
 ```
 
-| URL                 | Description                |
-|---------------------|----------------------------|
-| https://localhost    | Application ThiDom (HTTPS) |
+| URL                           | Description                |
+|-------------------------------|----------------------------|
+| https://localhost/ThiDomV2/   | Application ThiDom (HTTPS) |
+| https://<IP>/ThiDomV2/        | Acces reseau local         |
 
-> Le proxy Angular (`proxy.conf.json`) redirige automatiquement les appels `/api/*` et `/ws/*` vers le backend sur le port 8000.
+> Le proxy Angular (`proxy.conf.json`) redirige automatiquement les appels `/ThiDomV2/api/*` vers le backend sur le port 8000.
 
 ---
 
 ## 3. Alternative : Docker Compose (tout-en-un)
 
-### PrÃ©parer les certificats SSL
+### Préparer les certificats SSL
 
 ```powershell
-# Depuis la racine du projet â€” placer les certificats dans frontend/ssl/
+# Depuis la racine du projet  --  placer les certificats dans frontend/ssl/
 cd frontend
 mkdir ssl
 openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout ssl/server.key -out ssl/server.crt -subj "/CN=localhost/O=ThiDom/C=FR"
@@ -126,7 +129,7 @@ docker-compose up --build
 | Frontend | http://localhost      | Redirige vers HTTPS|
 | Backend  | http://localhost:8000 | API REST           |
 
-Pour arrÃªter :
+Pour arrêter :
 
 ```powershell
 docker-compose down
@@ -134,15 +137,15 @@ docker-compose down
 
 ---
 
-## 4. PremiÃ¨re utilisation
+## 4. Première utilisation
 
-1. Ouvrir **https://localhost** (accepter le certificat auto-signÃ© dans le navigateur)
-2. Cliquer sur **Â« CrÃ©er un compte Â»** et remplir le formulaire d'inscription
-3. Se connecter avec les identifiants crÃ©Ã©s
-4. Aller dans **Plugins** ? cliquer **Synchroniser** pour charger les plugins intÃ©grÃ©s (MQTT, ZigBee, Weather, Virtual)
-5. CrÃ©er des **PiÃ¨ces** (Salon, Chambre, Cuisineâ€¦)
-6. CrÃ©er des **Appareils** en les liant Ã  une piÃ¨ce et un plugin
-7. Les appareils apparaissent sur le **Tableau de bord** avec leurs Ã©tats en temps rÃ©el
+1. Ouvrir **https://localhost/ThiDomV2/** ou **http://\<IP\>/ThiDomV2/** (accepter le certificat auto-signe dans le navigateur)
+2. Cliquer sur **« Créer un compte »** et remplir le formulaire d'inscription
+3. Se connecter avec les identifiants créés
+4. Aller dans **Plugins** > cliquer **Synchroniser** pour charger les plugins integres (MQTT, ZigBee, Weather, Virtual)
+5. Creer des **Pieces** (Salon, Chambre, Cuisine...)
+6. Créer des **Appareils** en les liant à une pièce et un plugin
+7. Les appareils apparaissent sur le **Tableau de bord** avec leurs états en temps réel
 
 ---
 
@@ -155,7 +158,7 @@ cd frontend
 npx ng build --configuration production
 ```
 
-Les fichiers compilÃ©s sont gÃ©nÃ©rÃ©s dans `frontend/dist/thidom/browser/`.
+Les fichiers compilés sont générés dans `frontend/dist/thidom/browser/`.
 
 ### Backend
 
@@ -165,40 +168,76 @@ cd backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-> En production, remplacez `SECRET_KEY` dans `backend/.env` par une clÃ© alÃ©atoire sÃ©curisÃ©e et changez `DATABASE_URL` pour pointer vers PostgreSQL.
-> Utilisez de vrais certificats SSL (Let's Encrypt) au lieu des certificats auto-signÃ©s.
+> En production, remplacez `SECRET_KEY` dans `backend/.env` par une clé aléatoire sécurisée et changez `DATABASE_URL` pour pointer vers PostgreSQL.
+> Utilisez de vrais certificats SSL (Let's Encrypt) au lieu des certificats auto-signés.
 
 ---
 
-## 6. Structure des commandes (rÃ©sumÃ© rapide)
+## 6. Demarrage rapide (script tout-en-un)
+
+### Windows (PowerShell en Administrateur)
 
 ```powershell
-# Terminal 1 â€” Backend
+# Premier lancement (installe les dependances)
+.\start.ps1 -Install
+
+# Lancements suivants
+.\start.ps1              # HTTP  (port 80)
+.\start.ps1 -Https       # HTTPS (port 443)
+.\start.ps1 -Build       # Build de production uniquement
+.\start.ps1 -Help        # Aide
+```
+
+### Linux / macOS
+
+```bash
+chmod +x start.sh
+
+# Premier lancement (installe les dependances)
+./start.sh --install
+
+# Lancements suivants
+./start.sh               # HTTP  (port 80)
+./start.sh --https       # HTTPS (port 443)
+./start.sh --build       # Build de production uniquement
+./start.sh --help        # Aide
+```
+
+> Le script demarre le backend (port 8000) puis le frontend sous `/ThiDomV2/`.
+> Accessible depuis **http(s)://\<IP\>/ThiDomV2/** sur le reseau local.
+> Appuyez sur **Ctrl+C** pour tout arreter proprement.
+
+---
+
+## 7. Demarrage manuel (commandes separees)
+
+```powershell
+# Terminal 1  --  Backend
 cd backend
 .\venv\Scripts\activate
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# Terminal 2 â€” Frontend HTTP (port 80)
+# Terminal 2  --  Frontend HTTP (port 80)
 cd frontend
 npm start
 
-# OU Terminal 2 â€” Frontend HTTPS (port 443)
+# OU Terminal 2  --  Frontend HTTPS (port 443)
 cd frontend
-npx ng serve --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key
+npx ng serve --host 0.0.0.0 --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key --serve-path /ThiDomV2/
 ```
 
-? Ouvrir **https://localhost** ou **http://localhost**
+> Ouvrir **https://\<IP\>/ThiDomV2/** ou **http://\<IP\>/ThiDomV2/**
 
 ---
 
-## 7. Variables d'environnement (backend/.env)
+## 8. Variables d'environnement (backend/.env)
 
-| Variable                      | Description                              | Valeur par dÃ©faut                        |
+| Variable                      | Description                              | Valeur par défaut                        |
 |-------------------------------|------------------------------------------|------------------------------------------|
-| `DATABASE_URL`                | URL de connexion Ã  la base de donnÃ©es    | `sqlite+aiosqlite:///./thidomv2.db`        |
-| `SECRET_KEY`                  | ClÃ© secrÃ¨te JWT                          | `thidom-secret-key-change-in-production` |
+| `DATABASE_URL`                | URL de connexion à la base de données    | `sqlite+aiosqlite:///./thidomv2.db`        |
+| `SECRET_KEY`                  | Clé secrète JWT                          | `thidom-secret-key-change-in-production` |
 | `ALGORITHM`                   | Algorithme JWT                           | `HS256`                                  |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | DurÃ©e de validitÃ© du token (minutes)     | `1440` (24h)                             |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Durée de validité du token (minutes)     | `1440` (24h)                             |
 | `INFLUXDB_URL`                | URL InfluxDB (historisation)             | `http://localhost:8086`                  |
 | `INFLUXDB_TOKEN`              | Token InfluxDB                           | `thidom-influx-token`                    |
 | `INFLUXDB_ORG`                | Organisation InfluxDB                    | `thidom`                                 |
@@ -219,7 +258,7 @@ npx ng serve --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key
 
 ---
 
-## 8. DÃ©pannage
+## 9. Depannage
 
 ### Erreur SSL lors de `pip install` (proxy d'entreprise)
 
@@ -227,37 +266,37 @@ npx ng serve --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key
 pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.python.org -r requirements.txt
 ```
 
-### Port 80 ou 443 dÃ©jÃ  utilisÃ© ou accÃ¨s refusÃ©
+### Port 80 ou 443 déjà utilisé ou accès refusé
 
 ```powershell
-# VÃ©rifier quel processus utilise le port
+# Vérifier quel processus utilise le port
 netstat -ano | findstr :80
 netstat -ano | findstr :443
 
 # Tuer le processus (remplacer <PID>)
 taskkill /PID <PID> /F
 
-# Si accÃ¨s refusÃ© : relancer le terminal en Administrateur
+# Si accès refusé : relancer le terminal en Administrateur
 ```
 
-### Port 8000 dÃ©jÃ  utilisÃ©
+### Port 8000 déjà utilisé
 
 ```powershell
 netstat -ano | findstr :8000
 taskkill /PID <PID> /F
 ```
 
-### Certificat auto-signÃ© rejetÃ© par le navigateur
+### Certificat auto-signé rejeté par le navigateur
 
-- Chrome : cliquer sur Â« AvancÃ© Â» ? Â« Continuer vers localhost (non sÃ©curisÃ©) Â»
-- Firefox : cliquer sur Â« AvancÃ©â€¦ Â» ? Â« Accepter le risque et continuer Â»
-- Edge : cliquer sur Â« AvancÃ© Â» ? Â« Continuer vers localhost (non sÃ©curisÃ©) Â»
+- Chrome : cliquer sur "Avance" > "Continuer vers localhost (non securise)"
+- Firefox : cliquer sur "Avance..." > "Accepter le risque et continuer"
+- Edge : cliquer sur "Avance" > "Continuer vers localhost (non securise)"
 
-### RÃ©initialiser la base de donnÃ©es
+### Réinitialiser la base de données
 
 ```powershell
 cd backend
 del thidomv2.db
-# Relancer le backend â€” la base sera recrÃ©Ã©e automatiquement
+# Relancer le backend  --  la base sera recréée automatiquement
 uvicorn app.main:app --reload --port 8000
 

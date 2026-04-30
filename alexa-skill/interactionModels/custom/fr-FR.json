@@ -1,0 +1,273 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "maison thidom",
+      "intents": [
+        {
+          "name": "TurnOnIntent",
+          "slots": [
+            {
+              "name": "device",
+              "type": "DEVICE_NAME"
+            }
+          ],
+          "samples": [
+            "allume {device}",
+            "allumer {device}",
+            "allume le {device}",
+            "allume la {device}",
+            "allume les {device}",
+            "active {device}",
+            "activer {device}",
+            "démarre {device}",
+            "mets en marche {device}",
+            "ouvre {device}"
+          ]
+        },
+        {
+          "name": "TurnOffIntent",
+          "slots": [
+            {
+              "name": "device",
+              "type": "DEVICE_NAME"
+            }
+          ],
+          "samples": [
+            "éteins {device}",
+            "éteindre {device}",
+            "éteins le {device}",
+            "éteins la {device}",
+            "éteins les {device}",
+            "désactive {device}",
+            "coupe {device}",
+            "arrête {device}",
+            "ferme {device}"
+          ]
+        },
+        {
+          "name": "ToggleIntent",
+          "slots": [
+            {
+              "name": "device",
+              "type": "DEVICE_NAME"
+            }
+          ],
+          "samples": [
+            "bascule {device}",
+            "inverse {device}",
+            "change l'état de {device}",
+            "toggle {device}"
+          ]
+        },
+        {
+          "name": "SetTemperatureIntent",
+          "slots": [
+            {
+              "name": "device",
+              "type": "DEVICE_NAME"
+            },
+            {
+              "name": "temperature",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "mets {device} à {temperature} degrés",
+            "règle {device} sur {temperature} degrés",
+            "mets la température de {device} à {temperature}",
+            "règle la température de {device} à {temperature} degrés",
+            "change la température de {device} à {temperature}",
+            "mets le chauffage de {device} à {temperature} degrés"
+          ]
+        },
+        {
+          "name": "GetDeviceStateIntent",
+          "slots": [
+            {
+              "name": "device",
+              "type": "DEVICE_NAME"
+            }
+          ],
+          "samples": [
+            "quel est l'état de {device}",
+            "état de {device}",
+            "comment va {device}",
+            "donne moi l'état de {device}",
+            "est-ce que {device} est allumé",
+            "est-ce que {device} est allumée",
+            "quelle est la température de {device}",
+            "donne moi la température de {device}"
+          ]
+        },
+        {
+          "name": "GetRoomDevicesIntent",
+          "slots": [
+            {
+              "name": "room",
+              "type": "ROOM_NAME"
+            }
+          ],
+          "samples": [
+            "quels sont les appareils dans {room}",
+            "liste les appareils de {room}",
+            "qu'est-ce qu'il y a dans {room}",
+            "montre moi {room}",
+            "donne moi les appareils de {room}"
+          ]
+        },
+        {
+          "name": "RunScenarioIntent",
+          "slots": [
+            {
+              "name": "scenario",
+              "type": "SCENARIO_NAME"
+            }
+          ],
+          "samples": [
+            "lance le scénario {scenario}",
+            "exécute le scénario {scenario}",
+            "déclenche le scénario {scenario}",
+            "active le scénario {scenario}",
+            "lance {scenario}",
+            "exécute {scenario}",
+            "démarre le scénario {scenario}"
+          ]
+        },
+        {
+          "name": "TurnOnRoomIntent",
+          "slots": [
+            {
+              "name": "room",
+              "type": "ROOM_NAME"
+            }
+          ],
+          "samples": [
+            "allume tout dans {room}",
+            "allume {room}",
+            "allume la lumière dans {room}",
+            "allume les lumières de {room}",
+            "active tout dans {room}"
+          ]
+        },
+        {
+          "name": "TurnOffRoomIntent",
+          "slots": [
+            {
+              "name": "room",
+              "type": "ROOM_NAME"
+            }
+          ],
+          "samples": [
+            "éteins tout dans {room}",
+            "éteins {room}",
+            "éteins la lumière dans {room}",
+            "éteins les lumières de {room}",
+            "coupe tout dans {room}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "DEVICE_NAME",
+          "values": [
+            { "name": { "value": "lumière salon", "synonyms": ["lampe salon", "lumière du salon"] } },
+            { "name": { "value": "lumière chambre", "synonyms": ["lampe chambre", "lumière de la chambre"] } },
+            { "name": { "value": "lumière cuisine", "synonyms": ["lampe cuisine", "lumière de la cuisine"] } },
+            { "name": { "value": "thermostat", "synonyms": ["chauffage", "température"] } },
+            { "name": { "value": "volet salon", "synonyms": ["volet du salon", "store salon"] } },
+            { "name": { "value": "caméra", "synonyms": ["camera", "vidéo"] } },
+            { "name": { "value": "prise", "synonyms": ["prise connectée"] } }
+          ]
+        },
+        {
+          "name": "ROOM_NAME",
+          "values": [
+            { "name": { "value": "salon", "synonyms": ["séjour", "living"] } },
+            { "name": { "value": "chambre", "synonyms": ["chambre à coucher"] } },
+            { "name": { "value": "cuisine", "synonyms": [] } },
+            { "name": { "value": "salle de bain", "synonyms": ["salle de bains", "douche"] } },
+            { "name": { "value": "garage", "synonyms": [] } },
+            { "name": { "value": "jardin", "synonyms": ["extérieur", "dehors"] } },
+            { "name": { "value": "bureau", "synonyms": [] } }
+          ]
+        },
+        {
+          "name": "SCENARIO_NAME",
+          "values": [
+            { "name": { "value": "bonne nuit", "synonyms": ["coucher", "nuit"] } },
+            { "name": { "value": "départ", "synonyms": ["je pars", "absence"] } },
+            { "name": { "value": "arrivée", "synonyms": ["je suis là", "retour"] } },
+            { "name": { "value": "film", "synonyms": ["cinéma", "mode cinéma"] } },
+            { "name": { "value": "matin", "synonyms": ["réveil", "bonjour"] } }
+          ]
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "SetTemperatureIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "device",
+              "type": "DEVICE_NAME",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.device"
+              }
+            },
+            {
+              "name": "temperature",
+              "type": "AMAZON.NUMBER",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.temperature"
+              }
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "ALWAYS"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.device",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Quel appareil voulez-vous régler ?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.temperature",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "À quelle température souhaitez-vous régler {device} ?"
+          }
+        ]
+      }
+    ]
+  }
+}

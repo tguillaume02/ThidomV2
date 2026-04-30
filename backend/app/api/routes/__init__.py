@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.routes import auth, rooms, devices, plugins, scenarios, logs, schedules, history, websocket, camera, system
+from app.api.routes import auth, rooms, devices, plugins, scenarios, logs, schedules, history, websocket, camera, system, alexa
 
 api_router = APIRouter()
 
@@ -14,3 +14,4 @@ api_router.include_router(history.router, prefix="/history", tags=["History"])
 api_router.include_router(websocket.router, prefix="/ws", tags=["WebSocket"])
 api_router.include_router(camera.router, prefix="/cameras", tags=["Cameras"])
 api_router.include_router(system.router, prefix="/system", tags=["System"])
+api_router.include_router(alexa.router, prefix="/alexa", tags=["Alexa"])
