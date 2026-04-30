@@ -54,21 +54,39 @@ log "Recherche de la release '$TAG' sur $GH_REPO..."
 API_HEADERS=(-H "Accept: application/vnd.github+json")
 [ -n "${GH_TOKEN:-}" ] && API_HEADERS+=(-H "Authorization: Bearer $GH_TOKEN")
 
-if [ "$TAG" = "latest" ]; then
-  API_URL="https://api.github.com/repos/$GH_REPO/releases/latest"
-else
-  API_URL="https://api.github.com/repos/$GH_REPO/releases/tags/$TAG"
+# Resout le tag demande -> URL de l'asset thidomv2-release.zip.
+# Echo l'URL ou chaine vide si rien trouve.
+resolve_asset() {
+  local t="$1" url
+  if [ "$t" = "latest" ]; then
+    url="https://api.github.com/repos/$GH_REPO/releases/latest"
+  else
+    url="https://api.github.com/repos/$GH_REPO/releases/tags/$t"
+  fi
+  curl -sSL "${API_HEADERS[@]}" "$url" \
+    | jq -r '(.assets // []) | map(select(.name=="thidomv2-release.zip"))[0].browser_download_url // empty'
+}
+
+ASSET_URL="$(resolve_asset "$TAG")"
+
+# Fallback : si "latest" n'existe pas (pas encore de release stable),
+# on retente automatiquement sur le rolling "latest-master".
+if [ -z "$ASSET_URL" ] && [ "$TAG" = "latest" ]; then
+  warn "Aucune release stable trouvee. Bascule sur 'latest-master'..."
+  TAG="latest-master"
+  ASSET_URL="$(resolve_asset "$TAG")"
 fi
 
-RELEASE_JSON=$(curl -sSL "${API_HEADERS[@]}" "$API_URL")
-ASSET_URL=$(echo "$RELEASE_JSON" \
-  | jq -r '.assets[] | select(.name=="thidomv2-release.zip") | .browser_download_url')
-
-if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
-  err "Impossible de trouver l'asset thidomv2-release.zip pour '$TAG'."
-  err "Reponse API : $(echo "$RELEASE_JSON" | jq -r '.message // .')"
+if [ -z "$ASSET_URL" ]; then
+  err "Aucune release '$TAG' trouvee sur $GH_REPO."
+  err "Verifiez :"
+  err "  - que le workflow GitHub Actions a deja publie une release"
+  err "    (https://github.com/$GH_REPO/releases)"
+  err "  - que le depot est public, ou exportez GH_TOKEN si prive"
   exit 1
 fi
+
+log "Release resolue : tag='$TAG'"
 
 # ---------- Telechargement ----------
 TMP_DIR="$(mktemp -d)"

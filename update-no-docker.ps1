@@ -38,17 +38,37 @@ function Err($m)  { Write-Host "[ThiDomV2] $m" -ForegroundColor Red }
 $headers = @{ "Accept" = "application/vnd.github+json" }
 if ($env:GH_TOKEN) { $headers["Authorization"] = "Bearer $($env:GH_TOKEN)" }
 
-if ($Tag -eq "latest") {
-    $apiUrl = "https://api.github.com/repos/$GhRepo/releases/latest"
-} else {
-    $apiUrl = "https://api.github.com/repos/$GhRepo/releases/tags/$Tag"
+function Resolve-Asset([string]$t) {
+    if ($t -eq "latest") {
+        $u = "https://api.github.com/repos/$GhRepo/releases/latest"
+    } else {
+        $u = "https://api.github.com/repos/$GhRepo/releases/tags/$t"
+    }
+    try {
+        $r = Invoke-RestMethod -Uri $u -Headers $headers -ErrorAction Stop
+    } catch {
+        return $null
+    }
+    if (-not $r.assets) { return $null }
+    return ($r.assets | Where-Object { $_.name -eq "thidomv2-release.zip" } | Select-Object -First 1)
 }
 
 Log "Recherche de la release '$Tag' sur $GhRepo..."
-$release = Invoke-RestMethod -Uri $apiUrl -Headers $headers
+$asset = Resolve-Asset $Tag
 
-$asset = $release.assets | Where-Object { $_.name -eq "thidomv2-release.zip" } | Select-Object -First 1
-if (-not $asset) { Err "Asset thidomv2-release.zip introuvable."; exit 1 }
+# Fallback : si 'latest' absent (pas encore de release stable), bascule sur 'latest-master'
+if (-not $asset -and $Tag -eq "latest") {
+    Warn "Aucune release stable trouvee. Bascule sur 'latest-master'..."
+    $Tag = "latest-master"
+    $asset = Resolve-Asset $Tag
+}
+
+if (-not $asset) {
+    Err "Aucune release '$Tag' trouvee sur $GhRepo."
+    Err "Verifiez https://github.com/$GhRepo/releases et la variable GH_TOKEN si depot prive."
+    exit 1
+}
+Log "Release resolue : tag='$Tag'"
 
 # ---------- Telechargement ----------
 $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP "thidomv2-$(Get-Random)") -Force
