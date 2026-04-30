@@ -6,6 +6,55 @@ L'utilisateur final n'a **jamais besoin de compiler** la solution lui-même : il
 
 ---
 
+## 0. Première installation — bootstrap automatique
+
+Sur une machine vierge (Linux ou Windows), un seul script installe **tout ce qui manque** : Python, Apache, Docker (si demandé) et **MariaDB** (avec création de la base, de l'utilisateur, et import du schéma initial).
+
+### Linux
+
+```bash
+git clone https://github.com/tguillaume02/ThidomV2.git
+cd ThidomV2
+chmod +x install.sh
+sudo ./install.sh                    # mode no-docker + MariaDB (par défaut)
+# ou
+sudo ./install.sh --mode docker      # mode Docker + MariaDB
+sudo ./install.sh --db sqlite        # garde SQLite (aucun SGBD à installer)
+```
+
+Le script :
+1. détecte la distribution (`apt`, `dnf`, `yum`, `pacman`, `apk`),
+2. installe Python, Apache (+ modules), curl/unzip/jq/rsync/openssl,
+3. installe et démarre **MariaDB** si absent,
+4. **si MariaDB vient d'être installé**, demande aussi le mot de passe à donner au compte `root` de MariaDB (sinon, le `root` existant n'est pas modifié),
+5. **demande interactivement** le mot de passe à attribuer à l'utilisateur applicatif `thidom`,
+6. crée la base `thidomv2`, l'utilisateur `thidom`, et importe `backend/thidomv2_mysql_dump.sql` si la base est vide,
+7. écrit `backend/.env` avec la bonne `DATABASE_URL` (`mysql+aiomysql://thidom:...@localhost/thidomv2`) et un `SECRET_KEY` aléatoire,
+8. enchaîne sur `update.sh` (Docker) ou `update-no-docker.sh` (classique).
+
+Mode non-interactif (CI / Ansible) :
+```bash
+sudo DB_PASSWORD='S3cret!' DB_ROOT_PASSWORD='R00tP@ss' ./install.sh --noninteractive
+```
+> `DB_ROOT_PASSWORD` n'est requis que si MariaDB n'était pas déjà installé.
+
+### Windows (PowerShell **Administrateur**)
+
+```powershell
+git clone https://github.com/tguillaume02/ThidomV2.git
+cd ThidomV2
+.\install.ps1                        # MariaDB + mode no-docker
+.\install.ps1 -Mode docker
+.\install.ps1 -Db sqlite
+.\install.ps1 -NonInteractive -DbPassword "S3cret!" -DbRootPassword "R00tP@ss"
+```
+
+Le script utilise `winget` pour installer Python, Git, MariaDB Server, et Docker Desktop si nécessaire.
+
+> Les scripts `install.*` sont **idempotents** : s'ils trouvent un composant déjà installé, ils l'ignorent. Vous pouvez les relancer sans crainte.
+
+---
+
 ## 1. Côté développeur — Configuration unique
 
 ### 1.1. Activer GitHub Actions

@@ -1,0 +1,27 @@
+# Dependencies & build artifacts (re-built inside the container)
+node_modules
+dist
+.angular
+.cache
+
+# IDE / VCS
+.vs
+.vscode
+.idea
+.git
+.gitignore
+
+# Local SSL certs (mounted at runtime, not baked into the image)
+ssl/*.key
+ssl/*.crt
+ssl/*.pem
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+# Misc
+*.log
+npm-debug.log*
+.env
+.env.*

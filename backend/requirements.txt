@@ -17,9 +17,8 @@ aiomqtt>=2.0.0,<3.0.0
 pyserial>=3.5,<4.0.0
 pyserial-asyncio>=0.6,<1.0.0
 aiosmtplib>=3.0.0,<4.0.0
-# MySQL (uncomment if using MySQL)
-# aiomysql>=0.2.0,<1.0.0
-# MySQL alternative with cryptography support
-# asyncmy>=0.2.9,<1.0.0
+# MySQL / MariaDB driver (used by install.sh when MariaDB is selected).
+# Compatible with MariaDB 10.x and MySQL 5.7/8.x.
+aiomysql>=0.2.0,<1.0.0
 # PostgreSQL (uncomment if using PostgreSQL)
 # asyncpg>=0.29.0,<1.0.0
