@@ -271,11 +271,94 @@ chmod 600 "$ENV_FILE"
 
 # ---------- Etape 5 : deploiement ----------
 log "Pre-requis OK. Lancement du deploiement (mode=$MODE)..."
+
+# Determine l'utilisateur systeme pour le service backend
+SVC_USER="${SVC_USER:-www-data}"
+id "$SVC_USER" >/dev/null 2>&1 || SVC_USER="root"
+
+SVC_INSTALL_DIR="${INSTALL_DIR:-/opt/thidomv2}"
+SVC_NAME="${SERVICE_NAME:-thidomv2-backend}"
+
 if [ "$MODE" = "docker" ]; then
   sudo -E bash "$ROOT_DIR/update.sh"
 else
   chmod +x "$ROOT_DIR/update-no-docker.sh"
   sudo -E bash "$ROOT_DIR/update-no-docker.sh"
+fi
+
+# ---------- Etape 5b : copie du .env vers le repertoire de deploy ----------
+DEPLOY_ENV="$SVC_INSTALL_DIR/backend/.env"
+if [ "$ENV_FILE" != "$DEPLOY_ENV" ] && [ -f "$ENV_FILE" ]; then
+  sudo mkdir -p "$(dirname "$DEPLOY_ENV")"
+  sudo cp "$ENV_FILE" "$DEPLOY_ENV"
+  sudo chmod 600 "$DEPLOY_ENV"
+  log ".env copie vers $DEPLOY_ENV"
+fi
+
+# ---------- Etape 5c : creation du service systemd (mode no-docker) ----------
+if [ "$MODE" = "no-docker" ] && command -v systemctl >/dev/null 2>&1; then
+  SVC_FILE="/etc/systemd/system/${SVC_NAME}.service"
+  if [ ! -f "$SVC_FILE" ]; then
+    log "Creation du service systemd '$SVC_NAME'..."
+
+    # Determine le nom du service MariaDB/MySQL pour After=
+    DB_AFTER=""
+    if [ "$DB_ENGINE" = "mariadb" ]; then
+      DB_AFTER=" ${DB_SVC:-mariadb}.service"
+    fi
+
+    sudo tee "$SVC_FILE" >/dev/null <<UNIT
+[Unit]
+Description=ThiDomV2 backend (FastAPI/uvicorn)
+After=network.target${DB_AFTER}
+
+[Service]
+Type=simple
+User=$SVC_USER
+WorkingDirectory=$SVC_INSTALL_DIR/backend
+Environment="PATH=$SVC_INSTALL_DIR/backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=-$SVC_INSTALL_DIR/backend/.env
+ExecStart=$SVC_INSTALL_DIR/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable "$SVC_NAME"
+    log "Service systemd '$SVC_NAME' cree et active."
+  else
+    log "Service systemd '$SVC_NAME' existe deja."
+  fi
+
+  # Demarrage (ou redemarrage)
+  sudo systemctl restart "$SVC_NAME" || warn "Echec du demarrage de $SVC_NAME"
+  sleep 2
+  sudo systemctl status --no-pager "$SVC_NAME" | head -n 8 || true
+
+  # ---------- Etape 5d : regle sudoers pour mise a jour depuis l'UI web ----------
+  SUDOERS_FILE="/etc/sudoers.d/thidomv2"
+  SCRIPT_ABS="$SVC_INSTALL_DIR/update-no-docker.sh"
+  if [ ! -f "$SUDOERS_FILE" ]; then
+    # Copier le script update-no-docker.sh dans le repertoire d'install
+    if [ -f "$ROOT_DIR/update-no-docker.sh" ] && [ "$ROOT_DIR" != "$SVC_INSTALL_DIR" ]; then
+      sudo cp "$ROOT_DIR/update-no-docker.sh" "$SCRIPT_ABS"
+      sudo chmod +x "$SCRIPT_ABS"
+    fi
+    log "Creation de la regle sudoers pour $SVC_USER..."
+    echo "$SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS, /usr/bin/systemctl restart $SVC_NAME, /usr/bin/systemctl reload ${APACHE_SVC:-apache2}" \
+      | sudo tee "$SUDOERS_FILE" >/dev/null
+    sudo chmod 440 "$SUDOERS_FILE"
+    # Verification syntaxique
+    if ! sudo visudo -c -f "$SUDOERS_FILE" >/dev/null 2>&1; then
+      warn "Erreur syntaxe sudoers — suppression par securite."
+      sudo rm -f "$SUDOERS_FILE"
+    else
+      log "Sudoers OK : le backend peut lancer les mises a jour depuis l'interface web."
+    fi
+  fi
 fi
 
 # ---------- Etape 6 : initialisation de la base + admin par defaut ----------
