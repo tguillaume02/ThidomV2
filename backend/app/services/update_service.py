@@ -172,7 +172,7 @@ class UpdateService:
         roots = [
             Path(os.environ.get("THIDOM_INSTALL_DIR", "")) if os.environ.get("THIDOM_INSTALL_DIR") else None,
             _PROJECT_ROOT,                       # development repo layout
-            Path("/opt/thidomv2"),                # standard Linux install dir
+            Path("/opt/thidom"),                # standard Linux install dir
         ]
         for root in roots:
             if root is None:

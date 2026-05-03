@@ -20,21 +20,21 @@ version: "3.8"
 services:
   backend:
     image: ghcr.io/${GHCR_OWNER:-tguillaume02}/thidomv2-backend:${IMAGE_TAG:-latest}
-    container_name: thidomv2-backend
+    container_name: thidom-backend
     pull_policy: always
     ports:
       - "8000:8000"
     volumes:
-      - thidomv2-data:/app/data
+      - thidom-data:/app/data
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/thidomv2.db
+      - DATABASE_URL=sqlite+aiosqlite:///./data/thidom.db
     # En production, on n'utilise pas --reload
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     restart: unless-stopped
 
   frontend:
     image: ghcr.io/${GHCR_OWNER:-tguillaume02}/thidomv2-frontend:${IMAGE_TAG:-latest}
-    container_name: thidomv2-frontend
+    container_name: thidom-frontend
     pull_policy: always
     ports:
       - "80:80"
@@ -46,4 +46,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  thidomv2-data:
+  thidom-data:

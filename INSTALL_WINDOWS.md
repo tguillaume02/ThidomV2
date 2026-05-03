@@ -51,7 +51,7 @@ Editez `backend/.env` :
 
 **SQLite (par defaut, aucune installation necessaire) :**
 ```
-DATABASE_URL=sqlite+aiosqlite:///./thidomv2.db
+DATABASE_URL=sqlite+aiosqlite:///./thidom.db
 ```
 
 **MySQL :**
@@ -60,14 +60,14 @@ DATABASE_URL=sqlite+aiosqlite:///./thidomv2.db
 pip install aiomysql
 ```
 ```
-DATABASE_URL=mysql+aiomysql://thidomv2_user:motdepasse@localhost:3306/thidom
+DATABASE_URL=mysql+aiomysql://thidom:motdepasse@localhost:3306/thidom
 ```
 
 Puis creer la base dans MySQL :
 ```sql
 CREATE DATABASE thidomv2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'thidomv2_user'@'localhost' IDENTIFIED BY 'motdepasse';
-GRANT ALL PRIVILEGES ON thidomv2.* TO 'thidomv2_user'@'localhost';
+CREATE USER 'thidom'@'localhost' IDENTIFIED BY 'motdepasse';
+GRANT ALL PRIVILEGES ON thidom.* TO 'thidom'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -157,7 +157,7 @@ Arreter : `docker-compose down`
 
 | Variable                      | Description                          | Defaut                                   |
 |-------------------------------|--------------------------------------|------------------------------------------|
-| `DATABASE_URL`                | URL de connexion BDD                 | `sqlite+aiosqlite:///./thidomv2.db`        |
+| `DATABASE_URL`                | URL de connexion BDD                 | `sqlite+aiosqlite:///./thidom.db`        |
 | `SECRET_KEY`                  | Cle secrete JWT                      | `thidom-secret-key-change-in-production` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duree token (minutes)                | `1440`                                   |
 | `INFLUXDB_URL`                | URL InfluxDB                         | `http://localhost:8086`                  |
@@ -186,7 +186,7 @@ Cliquer sur **Avance** > **Continuer vers localhost (non securise)**
 ### Reinitialiser la base SQLite
 ```powershell
 cd backend
-del thidomv2.db
+del thidom.db
 # Relancer le backend
 ```
 

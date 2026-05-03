@@ -28,7 +28,7 @@ MODE="no-docker"            # no-docker | docker
 DB_ENGINE="mariadb"         # mariadb  | sqlite
 INTERACTIVE=true
 WITH_DUMP=false             # n'importe le dump SQL que si --with-dump
-DB_NAME="${DB_NAME:-thidomv2}"
+DB_NAME="${DB_NAME:-thidom}"
 DB_USER="${DB_USER:-thidom}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-3306}"
@@ -243,7 +243,7 @@ SQL
   DATABASE_URL="mysql+aiomysql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
 else
   log "Mode SQLite : pas d'installation de SGBD."
-  DATABASE_URL="sqlite+aiosqlite:///./data/thidomv2.db"
+  DATABASE_URL="sqlite+aiosqlite:///./data/thidom.db"
 fi
 
 # ---------- Etape 4 : ecriture du .env ----------
@@ -276,8 +276,8 @@ log "Pre-requis OK. Lancement du deploiement (mode=$MODE)..."
 SVC_USER="${SVC_USER:-www-data}"
 id "$SVC_USER" >/dev/null 2>&1 || SVC_USER="root"
 
-SVC_INSTALL_DIR="${INSTALL_DIR:-/opt/thidomv2}"
-SVC_NAME="${SERVICE_NAME:-thidomv2-backend}"
+SVC_INSTALL_DIR="${INSTALL_DIR:-/opt/thidom}"
+SVC_NAME="${SERVICE_NAME:-thidom-backend}"
 
 if [ "$MODE" = "docker" ]; then
   sudo -E bash "$ROOT_DIR/update.sh"
@@ -339,7 +339,7 @@ UNIT
   sudo systemctl status --no-pager "$SVC_NAME" | head -n 8 || true
 
   # ---------- Etape 5d : regle sudoers pour mise a jour depuis l'UI web ----------
-  SUDOERS_FILE="/etc/sudoers.d/thidomv2"
+  SUDOERS_FILE="/etc/sudoers.d/thidom"
   SCRIPT_ABS="$SVC_INSTALL_DIR/update-no-docker.sh"
   if [ ! -f "$SUDOERS_FILE" ]; then
     # Copier le script update-no-docker.sh dans le repertoire d'install
@@ -364,8 +364,8 @@ fi
 # ---------- Etape 6 : initialisation de la base + admin par defaut ----------
 # Cree la structure SQLAlchemy si manquante + un admin par defaut (admin/admin).
 INIT_DIR=""
-if   [ -x "${INSTALL_DIR:-/opt/thidomv2}/backend/venv/bin/python" ]; then
-  INIT_DIR="${INSTALL_DIR:-/opt/thidomv2}/backend"
+if   [ -x "${INSTALL_DIR:-/opt/thidom}/backend/venv/bin/python" ]; then
+  INIT_DIR="${INSTALL_DIR:-/opt/thidom}/backend"
 elif [ -x "$ROOT_DIR/backend/venv/bin/python" ]; then
   INIT_DIR="$ROOT_DIR/backend"
 fi

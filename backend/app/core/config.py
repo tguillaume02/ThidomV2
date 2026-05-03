@@ -9,10 +9,10 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database (supports sqlite, mysql, postgresql)
-    # SQLite:      sqlite+aiosqlite:///./thidomv2.db
-    # MySQL:       mysql+aiomysql://user:password@localhost:3306/thidomv2
-    # PostgreSQL:  postgresql+asyncpg://user:password@localhost:5432/thidomv2
-    database_url: str = "sqlite+aiosqlite:///./thidomv2.db"
+    # SQLite:      sqlite+aiosqlite:///./thidom.db
+    # MySQL:       mysql+aiomysql://user:password@localhost:3306/thidom
+    # PostgreSQL:  postgresql+asyncpg://user:password@localhost:5432/thidom
+    database_url: str = "sqlite+aiosqlite:///./thidom.db"
 
     # JWT
     secret_key: str = "thidom-secret-key-change-in-production"

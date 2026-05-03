@@ -234,7 +234,7 @@ npx ng serve --host 0.0.0.0 --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key
 
 | Variable                      | Description                              | Valeur par défaut                        |
 |-------------------------------|------------------------------------------|------------------------------------------|
-| `DATABASE_URL`                | URL de connexion à la base de données    | `sqlite+aiosqlite:///./thidomv2.db`        |
+| `DATABASE_URL`                | URL de connexion à la base de données    | `sqlite+aiosqlite:///./thidom.db`        |
 | `SECRET_KEY`                  | Clé secrète JWT                          | `thidom-secret-key-change-in-production` |
 | `ALGORITHM`                   | Algorithme JWT                           | `HS256`                                  |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Durée de validité du token (minutes)     | `1440` (24h)                             |
@@ -252,7 +252,7 @@ npx ng serve --host 0.0.0.0 --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key
 
 | Base       | URL                                                    | Driver a installer |
 |------------|--------------------------------------------------------|--------------------|
-| SQLite     | `sqlite+aiosqlite:///./thidomv2.db`                      | aiosqlite (inclus) |
+| SQLite     | `sqlite+aiosqlite:///./thidom.db`                      | aiosqlite (inclus) |
 | MySQL      | `mysql+aiomysql://user:pass@localhost:3306/thidom`     | `pip install aiomysql` |
 | PostgreSQL | `postgresql+asyncpg://user:pass@localhost:5432/thidom` | `pip install asyncpg`  |
 
@@ -296,7 +296,7 @@ taskkill /PID <PID> /F
 
 ```powershell
 cd backend
-del thidomv2.db
+del thidom.db
 # Relancer le backend  --  la base sera recréée automatiquement
 uvicorn app.main:app --reload --port 8000
 

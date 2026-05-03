@@ -22,9 +22,9 @@
 param(
     [string]$Tag = "latest",
     [string]$GhRepo = $(if ($env:GH_REPO) { $env:GH_REPO } else { "tguillaume02/ThidomV2" }),
-    [string]$InstallDir = $(if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { "C:\ThiDomV2" }),
+    [string]$InstallDir = $(if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { "C:\ThiDom" }),
     [string]$WebDir = $(if ($env:WEB_DIR) { $env:WEB_DIR } else { "C:\ThiDom\www\browser" }),
-    [string]$ServiceName = $(if ($env:SERVICE_NAME) { $env:SERVICE_NAME } else { "ThiDomV2Backend" }),
+    [string]$ServiceName = $(if ($env:SERVICE_NAME) { $env:SERVICE_NAME } else { "ThiDomBackend" }),
     [string]$ApacheService = $(if ($env:APACHE_SVC) { $env:APACHE_SVC } else { "Apache2.4" })
 )
 
@@ -50,7 +50,7 @@ function Resolve-Asset([string]$t) {
         return $null
     }
     if (-not $r.assets) { return $null }
-    return ($r.assets | Where-Object { $_.name -eq "thidomv2-release.zip" } | Select-Object -First 1)
+    return ($r.assets | Where-Object { $_.name -eq "thidom-release.zip" } | Select-Object -First 1)
 }
 
 Log "Recherche de la release '$Tag' sur $GhRepo..."
@@ -79,7 +79,7 @@ Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip -Headers $heade
 
 Log "Extraction..."
 Expand-Archive -Path $zip -DestinationPath $tmp -Force
-$src = Join-Path $tmp "thidomv2"
+$src = Join-Path $tmp "thidom"
 if (-not (Test-Path $src)) { Err "Archive invalide."; exit 1 }
 
 if (Test-Path (Join-Path $src "MANIFEST.txt")) {

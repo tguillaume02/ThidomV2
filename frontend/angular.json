@@ -21,7 +21,7 @@
             "outputPath": "dist/thidom",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "baseHref": "/ThiDom/"
+            "baseHref": "/ThiDom/",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -68,7 +68,7 @@
             "proxyConfig": "proxy.conf.json",
             "host": "0.0.0.0",
             "port": 4200,
-            "servePath": "/ThiDomV2/"
+            "servePath": "/ThiDom/"
           }
         }
       }

@@ -42,7 +42,7 @@ git clone <url-du-depot> ThiDomV2
 cd ThiDomV2
 ```
 
-> **Important :** Le code source doit etre dans un dossier utilisateur (`~/ThiDomV2` ou `/opt/ThiDomV2`).
+> **Important :** Le code source doit etre dans un dossier utilisateur (`~/ThiDomV2` ou `/opt/ThiDom`).
 > Le dossier `/var/www/ThiDom/browser/` ne contient que le **build de production** copie par Apache.
 
 ---
@@ -70,7 +70,7 @@ Editer `backend/.env` :
 
 **SQLite (par defaut) :**
 ```
-DATABASE_URL=sqlite+aiosqlite:///./thidomv2.db
+DATABASE_URL=sqlite+aiosqlite:///./thidom.db
 ```
 
 **MySQL :**
@@ -78,7 +78,7 @@ DATABASE_URL=sqlite+aiosqlite:///./thidomv2.db
 pip install aiomysql
 ```
 ```
-DATABASE_URL=mysql+aiomysql://thidomv2_user:motdepasse@localhost:3306/thidom
+DATABASE_URL=mysql+aiomysql://thidom_user:motdepasse@localhost:3306/thidom
 ```
 
 Creer la base dans MySQL :
@@ -86,9 +86,9 @@ Creer la base dans MySQL :
 sudo mysql -u root -p
 ```
 ```sql
-CREATE DATABASE thidomv2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'thidomv2_user'@'localhost' IDENTIFIED BY 'motdepasse';
-GRANT ALL PRIVILEGES ON thidomv2.* TO 'thidomv2_user'@'localhost';
+CREATE DATABASE thidom CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'thidom'@'localhost' IDENTIFIED BY 'motdepasse';
+GRANT ALL PRIVILEGES ON thidom.* TO 'thidom'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
@@ -98,7 +98,7 @@ EXIT;
 pip install asyncpg
 ```
 ```
-DATABASE_URL=postgresql+asyncpg://thidomv2_user:motdepasse@localhost:5432/thidom
+DATABASE_URL=postgresql+asyncpg://thidom:motdepasse@localhost:5432/thidom
 ```
 
 ### Lancement
@@ -125,9 +125,9 @@ After=network.target mysql.service
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/ThiDomV2/backend
-Environment=PATH=/opt/ThiDomV2/backend/venv/bin
-ExecStart=/opt/ThiDomV2/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+WorkingDirectory=/opt/ThiDom/backend
+Environment=PATH=/opt/ThiDom/backend/venv/bin
+ExecStart=/opt/ThiDom/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 Restart=always
 
 [Install]
@@ -230,7 +230,7 @@ Arreter : `docker-compose down`
 
 | Variable                      | Description                          | Defaut                                   |
 |-------------------------------|--------------------------------------|------------------------------------------|
-| `DATABASE_URL`                | URL de connexion BDD                 | `sqlite+aiosqlite:///./thidomv2.db`        |
+| `DATABASE_URL`                | URL de connexion BDD                 | `sqlite+aiosqlite:///./thidom.db`
 | `SECRET_KEY`                  | Cle secrete JWT                      | `thidom-secret-key-change-in-production` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Duree token (minutes)                | `1440`                                   |
 | `INFLUXDB_URL`                | URL InfluxDB                         | `http://localhost:8086`                  |
@@ -262,13 +262,13 @@ sudo systemctl restart apache2
 ### Reinitialiser la base SQLite
 ```bash
 cd backend
-rm thidomv2.db
+rm thidom.db
 # Relancer le backend
 ```
 
 ### MySQL : erreur de connexion
 ```bash
 sudo systemctl status mysql
-sudo mysql -u thidomv2_user -p -e "SELECT 1"
+sudo mysql -u thidom -p -e "SELECT 1"
 ```
 

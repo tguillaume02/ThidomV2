@@ -23,7 +23,7 @@
 #
 # Variables d'environnement :
 #   GH_REPO       proprio/repo GitHub (def: tguillaume02/ThidomV2)
-#   INSTALL_DIR   racine de l'install backend (def: /opt/thidomv2)
+#   INSTALL_DIR   racine de l'install backend (def: /opt/thidom)
 #   WEB_DIR       repertoire servi par Apache (def: /var/www/ThiDomV2/browser)
 #   SERVICE_NAME  service systemd backend (def: thidomv2-backend)
 #   APACHE_SVC    service Apache (def: apache2)
@@ -32,9 +32,9 @@
 set -e
 
 GH_REPO="${GH_REPO:-tguillaume02/ThidomV2}"
-INSTALL_DIR="${INSTALL_DIR:-/opt/thidomv2}"
+INSTALL_DIR="${INSTALL_DIR:-/opt/thidom}"
 WEB_DIR="${WEB_DIR:-/var/www/ThiDom/browser}"
-SERVICE_NAME="${SERVICE_NAME:-thidomv2-backend}"
+SERVICE_NAME="${SERVICE_NAME:-thidom-backend}"
 APACHE_SVC="${APACHE_SVC:-apache2}"
 
 TAG="${1:-latest}"
@@ -54,7 +54,7 @@ log "Recherche de la release '$TAG' sur $GH_REPO..."
 API_HEADERS=(-H "Accept: application/vnd.github+json")
 [ -n "${GH_TOKEN:-}" ] && API_HEADERS+=(-H "Authorization: Bearer $GH_TOKEN")
 
-# Resout le tag demande -> URL de l'asset thidomv2-release.zip.
+# Resout le tag demande -> URL de l'asset thidom-release.zip.
 # Echo l'URL ou chaine vide si rien trouve.
 resolve_asset() {
   local t="$1" url
@@ -64,7 +64,7 @@ resolve_asset() {
     url="https://api.github.com/repos/$GH_REPO/releases/tags/$t"
   fi
   curl -sSL "${API_HEADERS[@]}" "$url" \
-    | jq -r '(.assets // []) | map(select(.name=="thidomv2-release.zip"))[0].browser_download_url // empty'
+    | jq -r '(.assets // []) | map(select(.name=="thidom-release.zip"))[0].browser_download_url // empty'
 }
 
 ASSET_URL="$(resolve_asset "$TAG")"
@@ -97,7 +97,7 @@ curl -sSL "${API_HEADERS[@]}" -o "$TMP_DIR/release.zip" "$ASSET_URL"
 
 log "Extraction..."
 unzip -q "$TMP_DIR/release.zip" -d "$TMP_DIR"
-SRC="$TMP_DIR/thidomv2"
+SRC="$TMP_DIR/thidom"
 [ -d "$SRC" ] || { err "Archive invalide."; exit 1; }
 log "Build deploye : $(cat "$SRC/MANIFEST.txt" 2>/dev/null | tr '\n' ' ')"
 

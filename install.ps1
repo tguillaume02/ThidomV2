@@ -19,7 +19,7 @@
 param(
     [ValidateSet("no-docker","docker")][string]$Mode = "no-docker",
     [ValidateSet("mariadb","sqlite")][string]$Db = "mariadb",
-    [string]$DbName = "thidomv2",
+    [string]$DbName = "thidom",
     [string]$DbUser = "thidom",
     [string]$DbHost = "localhost",
     [int]$DbPort = 3306,
@@ -151,7 +151,7 @@ FLUSH PRIVILEGES;
     $DatabaseUrl = "mysql+aiomysql://${DbUser}:${DbPassword}@${DbHost}:${DbPort}/${DbName}"
 } else {
     Log "Mode SQLite : pas d'installation de SGBD."
-    $DatabaseUrl = "sqlite+aiosqlite:///./data/thidomv2.db"
+    $DatabaseUrl = "sqlite+aiosqlite:///./data/thidom.db"
 }
 
 # ---------- .env ----------

@@ -67,24 +67,24 @@ jobs:
       # ---------- Archive combinee ----------
       - name: Create combined release archive
         run: |
-          mkdir -p release/thidomv2
-          cp -r frontend/dist/thidom/browser release/thidomv2/frontend
-          cp frontend/apache.conf            release/thidomv2/apache.conf
+          mkdir -p release/thidom
+          cp -r frontend/dist/thidom/browser release/thidom/frontend
+          cp frontend/apache.conf            release/thidom/apache.conf
           rsync -a --exclude 'venv' \
                    --exclude '__pycache__' \
                    --exclude '*.db' \
                    --exclude '.env' \
-                   backend release/thidomv2/
-          cp backend/requirements.txt release/thidomv2/requirements.txt
+                   backend release/thidom/
+          cp backend/requirements.txt release/thidom/requirements.txt
           # Manifest avec metadata du build
-          cat > release/thidomv2/MANIFEST.txt <<EOF
+          cat > release/thidom/MANIFEST.txt <<EOF
           ThiDomV2 release
           ref:    ${{ github.ref }}
           sha:    ${{ github.sha }}
           built:  $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           EOF
           cd release
-          zip -r ../thidomv2-release.zip thidomv2
+          zip -r ../thidom-release.zip thidom
 
       # ---------- Publication via gh CLI (plus verbeux et debugable) ----------
       - name: Publish GitHub Release
@@ -113,7 +113,7 @@ jobs:
             --title "$NAME" \
             --notes "Build automatique depuis ${GITHUB_REF} (${GITHUB_SHA::7})" \
             $FLAGS \
-            thidomv2-release.zip frontend-dist.zip backend.zip
+            thidom-release.zip frontend-dist.zip backend.zip
 
           echo "Release publiee :"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY"

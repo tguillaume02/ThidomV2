@@ -28,7 +28,7 @@ Le script :
 3. installe et démarre **MariaDB** si absent,
 4. **si MariaDB vient d'être installé**, demande aussi le mot de passe à donner au compte `root` de MariaDB (sinon, le `root` existant n'est pas modifié),
 5. **demande interactivement** le mot de passe à attribuer à l'utilisateur applicatif `thidom`,
-6. crée la base `thidomv2`, l'utilisateur `thidom`, et importe `backend/thidomv2_mysql_dump.sql` si la base est vide,
+6. crée la base `thidom`, l'utilisateur `thidom`, et importe `backend/thidomv2_mysql_dump.sql` si la base est vide,
 7. écrit `backend/.env` avec la bonne `DATABASE_URL` (`mysql+aiomysql://thidom:...@localhost/thidomv2`) et un `SECRET_KEY` aléatoire,
 8. enchaîne sur `update.sh` (Docker) ou `update-no-docker.sh` (classique).
 
@@ -63,9 +63,9 @@ Le workflow est déjà présent : `.github/workflows/docker-publish.yml`. Il s'e
 ### 1.2. Rendre les paquets publics (recommandé)
 Au premier build, les images apparaissent dans l'onglet **Packages** du dépôt GitHub. Pour qu'elles soient téléchargeables sans authentification :
 
-1. GitHub → onglet **Packages** du dépôt → cliquer sur `thidomv2-backend`
+1. GitHub → onglet **Packages** du dépôt → cliquer sur `thidom-backend`
 2. **Package settings** → **Change visibility** → **Public**
-3. Répéter pour `thidomv2-frontend`
+3. Répéter pour `thidom-frontend`
 
 > Si vous préférez les laisser privées, l'utilisateur devra exécuter une seule fois :
 > ```bash
@@ -153,7 +153,7 @@ GHCR_OWNER=tguillaume02 IMAGE_TAG=v1.2.3 ./update.sh
 
 Si le serveur ne peut/ne doit pas exécuter Docker, un second workflow GitHub Actions (`.github/workflows/release-artifacts.yml`) fait **le build du frontend Angular dans le cloud** et publie une **GitHub Release** contenant :
 
-- `thidomv2-release.zip` — frontend déjà compilé + sources backend + `apache.conf` + `requirements.txt`
+- `thidom-release.zip` — frontend déjà compilé + sources backend + `apache.conf` + `requirements.txt`
 - `frontend-dist.zip` — frontend seul
 - `backend.zip` — backend seul
 
@@ -207,9 +207,9 @@ Variables d'environnement reconnues :
 | Variable | Défaut Linux | Défaut Windows | Description |
 |---|---|---|---|
 | `GH_REPO` | `tguillaume02/ThidomV2` | idem | Dépôt source |
-| `INSTALL_DIR` | `/opt/thidomv2` | `C:\ThiDomV2` | Racine de l'install backend |
+| `INSTALL_DIR` | `/opt/thidom` | `C:\ThiDom` | Racine de l'install backend |
 | `WEB_DIR` | `/var/www/ThiDom/browser` | `C:\ThiDom\www\browser` | Dossier servi par Apache |
-| `SERVICE_NAME` | `thidomv2-backend` | `ThiDomV2Backend` | Service backend à redémarrer |
+| `SERVICE_NAME` | `thidom-backend` | `ThiDomBackend` | Service backend à redémarrer |
 | `APACHE_SVC` | `apache2` | `Apache2.4` | Service Apache à recharger |
 | `GH_TOKEN` | — | — | Token GitHub si dépôt **privé** |
 
@@ -217,7 +217,7 @@ Le script préserve automatiquement la base de données (`*.db`), le fichier `.e
 
 ### 5.4. Service systemd backend (Linux, à créer une seule fois)
 
-`/etc/systemd/system/thidomv2-backend.service` :
+`/etc/systemd/system/thidom-backend.service` :
 
 ```ini
 [Unit]
@@ -226,10 +226,10 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/thidomv2/backend
-Environment="PATH=/opt/thidomv2/backend/venv/bin"
-EnvironmentFile=-/opt/thidomv2/backend/.env
-ExecStart=/opt/thidomv2/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+WorkingDirectory=/opt/thidom/backend
+Environment="PATH=/opt/thidom/backend/venv/bin"
+EnvironmentFile=-/opt/thidom/backend/.env
+ExecStart=/opt/thidom/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=on-failure
 RestartSec=5
 
@@ -239,7 +239,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now thidomv2-backend
+sudo systemctl enable --now thidom-backend
 ```
 
 ### 5.5. Récapitulatif des deux modes
