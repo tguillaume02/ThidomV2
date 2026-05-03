@@ -33,7 +33,7 @@ set -e
 
 GH_REPO="${GH_REPO:-tguillaume02/ThidomV2}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/thidomv2}"
-WEB_DIR="${WEB_DIR:-/var/www/ThiDomV2/browser}"
+WEB_DIR="${WEB_DIR:-/var/www/ThiDom/browser}"
 SERVICE_NAME="${SERVICE_NAME:-thidomv2-backend}"
 APACHE_SVC="${APACHE_SVC:-apache2}"
 

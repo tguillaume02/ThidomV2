@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/ThiDomV2/api',
-  wsUrl: `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ThiDomV2/api/ws/live`,
+  apiUrl: '/ThiDom/api',
+  wsUrl: `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ThiDom/api/ws/live`,
 };

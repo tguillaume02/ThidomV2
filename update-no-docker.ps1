@@ -23,7 +23,7 @@ param(
     [string]$Tag = "latest",
     [string]$GhRepo = $(if ($env:GH_REPO) { $env:GH_REPO } else { "tguillaume02/ThidomV2" }),
     [string]$InstallDir = $(if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { "C:\ThiDomV2" }),
-    [string]$WebDir = $(if ($env:WEB_DIR) { $env:WEB_DIR } else { "C:\ThiDomV2\www\browser" }),
+    [string]$WebDir = $(if ($env:WEB_DIR) { $env:WEB_DIR } else { "C:\ThiDom\www\browser" }),
     [string]$ServiceName = $(if ($env:SERVICE_NAME) { $env:SERVICE_NAME } else { "ThiDomV2Backend" }),
     [string]$ApacheService = $(if ($env:APACHE_SVC) { $env:APACHE_SVC } else { "Apache2.4" })
 )

@@ -21,7 +21,7 @@
             "outputPath": "dist/thidom",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "baseHref": "/ThiDomV2/",
+            "baseHref": "/ThiDom/"
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",

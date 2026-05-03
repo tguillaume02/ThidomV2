@@ -208,7 +208,7 @@ Variables d'environnement reconnues :
 |---|---|---|---|
 | `GH_REPO` | `tguillaume02/ThidomV2` | idem | Dépôt source |
 | `INSTALL_DIR` | `/opt/thidomv2` | `C:\ThiDomV2` | Racine de l'install backend |
-| `WEB_DIR` | `/var/www/ThiDomV2/browser` | `C:\ThiDomV2\www\browser` | Dossier servi par Apache |
+| `WEB_DIR` | `/var/www/ThiDom/browser` | `C:\ThiDom\www\browser` | Dossier servi par Apache |
 | `SERVICE_NAME` | `thidomv2-backend` | `ThiDomV2Backend` | Service backend à redémarrer |
 | `APACHE_SVC` | `apache2` | `Apache2.4` | Service Apache à recharger |
 | `GH_TOKEN` | — | — | Token GitHub si dépôt **privé** |

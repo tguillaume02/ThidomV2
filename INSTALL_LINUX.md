@@ -43,7 +43,7 @@ cd ThiDomV2
 ```
 
 > **Important :** Le code source doit etre dans un dossier utilisateur (`~/ThiDomV2` ou `/opt/ThiDomV2`).
-> Le dossier `/var/www/ThiDomV2/browser/` ne contient que le **build de production** copie par Apache.
+> Le dossier `/var/www/ThiDom/browser/` ne contient que le **build de production** copie par Apache.
 
 ---
 
@@ -177,9 +177,9 @@ sudo apt install -y certbot python3-certbot-apache
 sudo certbot certonly --apache -d VOTRE_DOMAINE
 
 # Copier les fichiers du build Angular
-sudo mkdir -p /var/www/ThiDomV2/browser
-sudo cp -r dist/thidom/browser/* /var/www/ThiDomV2/browser/
-sudo chown -R www-data:www-data /var/www/ThiDomV2
+sudo mkdir -p /var/www/ThiDom/browser
+sudo cp -r dist/thidom/browser/* /var/www/ThiDom/browser/
+sudo chown -R www-data:www-data /var/www/ThiDom
 
 # Copier la config Apache (s'ajoute au site existant, ne cree pas de VirtualHost)
 sudo cp apache.conf /etc/apache2/conf-available/ThiDomV2.conf
@@ -187,7 +187,7 @@ sudo a2enconf ThiDomV2
 sudo apachectl configtest && sudo systemctl reload apache2
 ```
 
-> ThiDomV2 s'integre au VirtualHost existant via un Alias `/ThiDomV2`.
+> ThiDomV2 s'integre au VirtualHost existant via un Alias `/ThiDom`.
 > Les autres applications sur le port 80/443 ne sont pas affectees.
 
 ---

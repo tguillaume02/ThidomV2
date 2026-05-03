@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, func
+from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Text, func
 from app.core.database import Base
 
 
@@ -9,7 +9,7 @@ class Scenario(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(500), nullable=True)
     enabled = Column(Boolean, default=True)
-    blockly_xml = Column(String, nullable=True)  # Blockly workspace XML
+    blockly_xml = Column(Text, nullable=True)  # Blockly workspace XML (can be large)
     triggers = Column(JSON, nullable=True)  # List of trigger definitions
     conditions = Column(JSON, nullable=True)  # List of conditions
     actions = Column(JSON, nullable=True)  # List of actions

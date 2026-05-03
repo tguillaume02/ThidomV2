@@ -8,7 +8,7 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
-DEPLOY_DIR="/var/www/ThiDomV2/browser"
+DEPLOY_DIR="/var/www/ThiDom/browser"
 
 USE_HTTPS=false
 DO_BUILD=false
@@ -114,7 +114,7 @@ if [ "$DO_DEPLOY" = true ]; then
   sudo mkdir -p "$DEPLOY_DIR"
   sudo rm -rf "${DEPLOY_DIR:?}"/*
   sudo cp -r dist/thidom/browser/* "$DEPLOY_DIR/"
-  sudo chown -R www-data:www-data /var/www/ThiDomV2
+  sudo chown -R www-data:www-data /var/www/ThiDom
 
   log "Rechargement Apache..."
   sudo apachectl configtest && sudo systemctl reload apache2
@@ -125,7 +125,7 @@ if [ "$DO_DEPLOY" = true ]; then
   log "=============================="
   info "Backend  : http://localhost:8000"
   info "Swagger  : http://localhost:8000/docs"
-  info "Frontend : http://<IP>/ThiDomV2/  (via Apache)"
+  info "Frontend : http://<IP>/ThiDom/  (via Apache)"
   log "Appuyez sur Ctrl+C pour arreter le backend."
   echo ""
 
@@ -151,14 +151,14 @@ else
         -keyout ssl/server.key -out ssl/server.crt \
         -subj "/CN=localhost/O=ThiDomV2/C=FR" 2>/dev/null
     fi
-    npx ng serve --host 0.0.0.0 --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key --serve-path /ThiDomV2/ &
+    npx ng serve --host 0.0.0.0 --port 443 --ssl --ssl-cert ssl/server.crt --ssl-key ssl/server.key --serve-path /ThiDom/ &
     FRONTEND_PID=$!
-    info "Frontend: https://localhost/ThiDomV2/"
+    info "Frontend: https://localhost/ThiDom/"
   else
     log "Demarrage du frontend en HTTP (port 4200)..."
-    npx ng serve --host 0.0.0.0 --port 4200 --serve-path /ThiDomV2/ &
+    npx ng serve --host 0.0.0.0 --port 4200 --serve-path /ThiDom/ &
     FRONTEND_PID=$!
-    info "Frontend: http://localhost:4200/ThiDomV2/"
+    info "Frontend: http://localhost:4200/ThiDom/"
   fi
   info "Frontend PID: $FRONTEND_PID"
 
@@ -169,9 +169,9 @@ else
   info "Backend  : http://localhost:8000"
   info "Swagger  : http://localhost:8000/docs"
   if [ "$USE_HTTPS" = true ]; then
-    info "Frontend : https://<IP>/ThiDomV2/"
+    info "Frontend : https://<IP>/ThiDom/"
   else
-    info "Frontend : http://<IP>:4200/ThiDomV2/"
+    info "Frontend : http://<IP>:4200/ThiDom/"
   fi
   log "Appuyez sur Ctrl+C pour arreter."
   echo ""
