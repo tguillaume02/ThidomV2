@@ -118,7 +118,7 @@ if (-not (Test-Path $venv)) {
 $pip = Join-Path $venv "Scripts\pip.exe"
 Log "Mise a jour des dependances Python..."
 & $pip install --upgrade pip | Out-Null
-& $pip install -r (Join-Path $backendDst "requirements.txt")
+& $pip install --prefer-binary -r (Join-Path $backendDst "requirements.txt")
 
 # ---------- Restart services ----------
 if ($svc) {
