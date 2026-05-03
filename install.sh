@@ -97,8 +97,8 @@ pm_update() {
 pkg() {
   local what="$1"
   case "$what:$PM" in
-    python:apt|python:apk)            echo "python3 python3-venv python3-pip" ;;
-    python:dnf|python:yum)            echo "python3 python3-pip" ;;
+    python:apt|python:apk)            echo "python3 python3-venv python3-pip python3-dev" ;;
+    python:dnf|python:yum)            echo "python3 python3-pip python3-devel" ;;
     python:pacman)                    echo "python python-pip" ;;
     apache:apt)                       echo "apache2" ;;
     apache:dnf|apache:yum)            echo "httpd mod_ssl" ;;
@@ -108,6 +108,10 @@ pkg() {
     mariadb:dnf|mariadb:yum)          echo "mariadb-server mariadb" ;;
     mariadb:pacman)                   echo "mariadb" ;;
     mariadb:apk)                      echo "mariadb mariadb-client" ;;
+    build:apt)                        echo "build-essential libffi-dev libssl-dev" ;;
+    build:dnf|build:yum)              echo "gcc gcc-c++ make libffi-devel openssl-devel" ;;
+    build:pacman)                     echo "base-devel libffi openssl" ;;
+    build:apk)                        echo "build-base libffi-dev openssl-dev" ;;
     common:*)                         echo "curl unzip jq rsync openssl" ;;
   esac
 }
@@ -119,6 +123,9 @@ pm_update
 
 log "Installation des outils communs..."
 pm_install $(pkg common "")
+
+log "Installation des outils de build (gcc, headers Python)..."
+pm_install $(pkg build "") || warn "Outils de build : installation partielle, certains paquets pip pourraient devoir compiler."
 
 log "Installation de Python..."
 pm_install $(pkg python "")

@@ -128,7 +128,9 @@ fi
 
 log "Mise a jour des dependances Python..."
 sudo "$INSTALL_DIR/backend/venv/bin/pip" install --upgrade pip >/dev/null
-sudo "$INSTALL_DIR/backend/venv/bin/pip" install -r "$INSTALL_DIR/backend/requirements.txt"
+# --prefer-binary : evite de recompiler depuis les sources si un wheel existe
+# (gain enorme pour uvloop, bcrypt, cryptography, etc. sur ARM/Raspberry Pi).
+sudo "$INSTALL_DIR/backend/venv/bin/pip" install --prefer-binary -r "$INSTALL_DIR/backend/requirements.txt"
 
 # ---------- Restart des services ----------
 if systemctl list-unit-files | grep -q "^${SERVICE_NAME}\."; then
