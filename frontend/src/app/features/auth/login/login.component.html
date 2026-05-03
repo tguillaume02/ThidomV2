@@ -6,105 +6,44 @@
       <p>Gestion domotique intelligente</p>
     </div>
 
-    <!-- Login Form -->
-    @if (!showRegister) {
-      <mat-card class="login-card">
-        <mat-card-header>
-          <mat-card-title>Connexion</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <form (ngSubmit)="login()">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Nom d'utilisateur</mat-label>
-              <input matInput [(ngModel)]="username" name="username" required autocomplete="username">
-              <mat-icon matSuffix>person</mat-icon>
-            </mat-form-field>
+    <mat-card class="login-card">
+      <mat-card-header>
+        <mat-card-title>Connexion</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form (ngSubmit)="login()">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Nom d'utilisateur</mat-label>
+            <input matInput [(ngModel)]="username" name="username" required autocomplete="username">
+            <mat-icon matSuffix>person</mat-icon>
+          </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Mot de passe</mat-label>
-              <input matInput
-                     [(ngModel)]="password"
-                     name="password"
-                     [type]="hidePassword ? 'password' : 'text'"
-                     required
-                     autocomplete="current-password">
-              <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
-                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-            </mat-form-field>
-
-            <button mat-raised-button
-                    color="primary"
-                    type="submit"
-                    class="full-width login-btn"
-                    [disabled]="loading || !username || !password">
-              @if (loading) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                Se connecter
-              }
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Mot de passe</mat-label>
+            <input matInput
+                   [(ngModel)]="password"
+                   name="password"
+                   [type]="hidePassword ? 'password' : 'text'"
+                   required
+                   autocomplete="current-password">
+            <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
-          </form>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button mat-button color="accent" (click)="showRegister = true">
-            Créer un compte
+          </mat-form-field>
+
+          <button mat-raised-button
+                  color="primary"
+                  type="submit"
+                  class="full-width login-btn"
+                  [disabled]="loading || !username || !password">
+            @if (loading) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              Se connecter
+            }
           </button>
-        </mat-card-actions>
-      </mat-card>
-    }
-
-    <!-- Register Form -->
-    @if (showRegister) {
-      <mat-card class="login-card">
-        <mat-card-header>
-          <mat-card-title>Inscription</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <form (ngSubmit)="register()">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Nom d'utilisateur</mat-label>
-              <input matInput [(ngModel)]="regUsername" name="regUsername" required>
-              <mat-icon matSuffix>person</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Email</mat-label>
-              <input matInput [(ngModel)]="regEmail" name="regEmail" type="email" required>
-              <mat-icon matSuffix>email</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Nom complet</mat-label>
-              <input matInput [(ngModel)]="regFullName" name="regFullName">
-              <mat-icon matSuffix>badge</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Mot de passe</mat-label>
-              <input matInput [(ngModel)]="regPassword" name="regPassword" type="password" required>
-              <mat-icon matSuffix>lock</mat-icon>
-            </mat-form-field>
-
-            <button mat-raised-button
-                    color="primary"
-                    type="submit"
-                    class="full-width login-btn"
-                    [disabled]="loading || !regUsername || !regEmail || !regPassword">
-              @if (loading) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                S'inscrire
-              }
-            </button>
-          </form>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button mat-button color="accent" (click)="showRegister = false">
-            Retour à la connexion
-          </button>
-        </mat-card-actions>
-      </mat-card>
-    }
+        </form>
+      </mat-card-content>
+    </mat-card>
   </div>
 </div>

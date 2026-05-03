@@ -44,6 +44,14 @@ export const routes: Routes = [
         loadComponent: () => import('@features/logs/logs.component').then(m => m.LogsComponent),
       },
       {
+        path: 'users',
+        loadComponent: () => import('@features/users/users.component').then(m => m.UsersComponent),
+      },
+      {
+        path: 'system',
+        loadComponent: () => import('@features/system/system.component').then(m => m.SystemComponent),
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full',

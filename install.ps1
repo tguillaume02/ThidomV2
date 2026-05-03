@@ -105,7 +105,37 @@ FLUSH PRIVILEGES;
         $rootSql | & $mysqlExe -uroot
         Log "Compte root MariaDB configure."
     } else {
-        Log "MariaDB etait deja present : compte root inchange."
+        Log "MariaDB etait deja present."
+        # Demander le mot de passe root existant pour les commandes mysql
+        if (-not $DbRootPassword) {
+            if (-not $NonInteractive) {
+                # Test si connexion sans mot de passe fonctionne
+                try {
+                    $null = & $mysqlExe -uroot -e "SELECT 1" 2>&1
+                    Log "Connexion root sans mot de passe OK."
+                } catch {
+                    $rp = Read-Host "Mot de passe root MariaDB existant" -AsSecureString
+                    $DbRootPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+                        [Runtime.InteropServices.Marshal]::SecureStringToBSTR($rp))
+                }
+            }
+        }
+    }
+
+    # Construire les arguments mysql avec ou sans mot de passe
+    if ($DbRootPassword) {
+        $mysqlArgs = @("-uroot", "-p$DbRootPassword")
+    } else {
+        $mysqlArgs = @("-uroot")
+    }
+
+    # Verifier la connexion
+    try {
+        $null = & $mysqlExe @mysqlArgs -e "SELECT 1" 2>&1
+        Log "Connexion root MariaDB OK."
+    } catch {
+        Err "Impossible de se connecter a MariaDB. Verifiez le mot de passe root."
+        exit 1
     }
 
     # Mot de passe applicatif
@@ -131,16 +161,16 @@ ALTER USER '$DbUser'@'$DbHost' IDENTIFIED BY '$DbPassword';
 GRANT ALL PRIVILEGES ON ``$DbName``.* TO '$DbUser'@'$DbHost';
 FLUSH PRIVILEGES;
 "@
-    $sql | & $mysqlExe -uroot
+    $sql | & $mysqlExe @mysqlArgs
 
     # Par defaut on n'importe PAS le dump SQL : le backend cree la structure
     # au premier demarrage via init_default_admin.py.
     if ($WithDump) {
         $dump = Join-Path $PSScriptRoot "backend\thidomv2_mysql_dump.sql"
-        $tableCount = (& $mysqlExe -uroot -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DbName';").Trim()
+        $tableCount = (& $mysqlExe @mysqlArgs -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DbName';").Trim()
         if ($tableCount -eq "0" -and (Test-Path $dump)) {
             Log "Import du dump $(Split-Path $dump -Leaf)..."
-            Get-Content $dump | & $mysqlExe -uroot $DbName
+            Get-Content $dump | & $mysqlExe @mysqlArgs $DbName
         } else {
             Log "Base deja peuplee ou dump absent — import ignore."
         }
@@ -170,13 +200,34 @@ if (Test-Path $envFile) {
 } else {
     $secret = -join ((48..57)+(97..122) | Get-Random -Count 64 | ForEach-Object { [char]$_ })
     @"
-# Genere par install.ps1
 DATABASE_URL=$DatabaseUrl
 SECRET_KEY=$secret
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 TIMEZONE=Europe/Paris
 "@ | Set-Content -Path $envFile
+}
+
+# Remplacer SECRET_KEY par defaut
+$envContent = Get-Content $envFile -Raw
+if ($envContent -match 'thidom-secret-key-change-in-production') {
+    $newKey = -join ((48..57)+(97..122) | Get-Random -Count 64 | ForEach-Object { [char]$_ })
+    $envContent = $envContent -replace 'thidom-secret-key-change-in-production', $newKey
+    Set-Content -Path $envFile -Value $envContent -NoNewline
+    Log "SECRET_KEY generee automatiquement."
+}
+# Ajouter SECRET_KEY si absente
+if ($envContent -notmatch '(?m)^SECRET_KEY=') {
+    $newKey = -join ((48..57)+(97..122) | Get-Random -Count 64 | ForEach-Object { [char]$_ })
+    Add-Content -Path $envFile -Value "SECRET_KEY=$newKey"
+    Log "SECRET_KEY ajoutee."
+}
+# Remplacer token InfluxDB par defaut
+$envContent = Get-Content $envFile -Raw
+if ($envContent -match 'thidom-influx-token') {
+    $newToken = -join ((48..57)+(97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
+    $envContent = $envContent -replace 'thidom-influx-token', $newToken
+    Set-Content -Path $envFile -Value $envContent -NoNewline
 }
 
 # ---------- Deploiement ----------
@@ -187,8 +238,16 @@ if ($Mode -eq "docker") {
     & (Join-Path $PSScriptRoot "update-no-docker.ps1")
 }
 
-# ---------- Initialisation BDD + admin par defaut ----------
+# ---------- Copie du .env vers le repertoire de deploy ----------
 $installDir = if ($env:INSTALL_DIR) { $env:INSTALL_DIR } else { "C:\ThiDomV2" }
+$deployEnv = Join-Path $installDir "backend\.env"
+if ($envFile -ne $deployEnv -and (Test-Path $envFile)) {
+    New-Item -ItemType Directory -Path (Split-Path $deployEnv) -Force | Out-Null
+    Copy-Item $envFile $deployEnv -Force
+    Log ".env copie vers $deployEnv"
+}
+
+# ---------- Initialisation BDD + admin par defaut ----------
 $venvPython = Join-Path $installDir "backend\venv\Scripts\python.exe"
 $initScript = Join-Path $installDir "backend\init_default_admin.py"
 if (-not (Test-Path $venvPython)) {
@@ -204,4 +263,4 @@ if ((Test-Path $venvPython) -and (Test-Path $initScript)) {
     Warn "venv backend introuvable, etape d'init admin ignoree."
 }
 
-Log "Installation terminee. Connectez-vous avec admin / admin (a changer immediatement)."
+Log "Installation terminee. Connectez-vous sur http://localhost:8000/ThiDom/ avec admin / admin (a changer immediatement)."

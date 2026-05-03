@@ -132,6 +132,14 @@ sudo "$INSTALL_DIR/backend/venv/bin/pip" install --upgrade pip >/dev/null
 # (gain enorme pour uvloop, bcrypt, cryptography, etc. sur ARM/Raspberry Pi).
 sudo "$INSTALL_DIR/backend/venv/bin/pip" install --prefer-binary -r "$INSTALL_DIR/backend/requirements.txt"
 
+# ---------- Permissions ----------
+# Le service systemd tourne en tant que www-data (ou $SVC_USER).
+# Tous les fichiers deployes doivent lui appartenir.
+SVC_USER="${SVC_USER:-www-data}"
+id "$SVC_USER" >/dev/null 2>&1 || SVC_USER="root"
+sudo chown -R "$SVC_USER:$SVC_USER" "$INSTALL_DIR/backend"
+sudo chown -R www-data:www-data "$WEB_DIR"
+
 # ---------- Restart des services ----------
 if systemctl list-unit-files | grep -q "^${SERVICE_NAME}\."; then
   log "Demarrage du service $SERVICE_NAME..."

@@ -12,6 +12,7 @@ from app.models.user import User
 from app.schemas.plugin import PluginCreate, PluginUpdate, PluginResponse, PluginHubConfigUpdate
 from app.plugins.registry import PluginRegistry, load_builtin_plugins
 from app.services.log_service import create_log
+from app.core.websocket import manager as ws_manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ async def create_plugin(
     db.add(plugin)
     await db.commit()
     await db.refresh(plugin)
+    await ws_manager.broadcast({"type": "plugin_changed", "action": "created", "plugin_id": plugin.id})
     return plugin
 
 
@@ -102,6 +104,7 @@ async def update_plugin(
             await instance.teardown()
         await _cascade_disable_plugin(plugin, db, current_user)
 
+    await ws_manager.broadcast({"type": "plugin_changed", "action": "updated", "plugin_id": plugin.id})
     return plugin
 
 
@@ -156,6 +159,7 @@ async def save_plugin_hub_config(
         f"Configuration hub du plugin '{plugin.name}' mise a jour",
         user_id=current_user.id,
     )
+    await ws_manager.broadcast({"type": "plugin_changed", "action": "hub_config", "plugin_id": plugin.id})
     return {"status": "ok", "connection_status": status}
 
 
@@ -221,6 +225,8 @@ async def sync_plugins(
             synced.append(info["slug"])
 
     await db.commit()
+    if synced:
+        await ws_manager.broadcast({"type": "plugin_changed", "action": "synced", "synced": synced})
     return {"synced": synced, "total_registered": len(registered)}
 
 

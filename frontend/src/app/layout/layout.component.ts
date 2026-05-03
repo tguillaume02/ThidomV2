@@ -49,6 +49,8 @@ export class LayoutComponent implements OnInit {
     { label: 'Planification', icon: 'calendar_today', route: '/schedules' },
     { label: 'Historique', icon: 'timeline', route: '/history' },
     { label: 'Logs', icon: 'receipt_long', route: '/logs' },
+    { label: 'Utilisateurs', icon: 'people', route: '/users' },
+    { label: 'Systeme', icon: 'settings', route: '/system' },
   ];
 
   constructor(

@@ -1,0 +1,41 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur' }}</h2>
+
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nom d'utilisateur</mat-label>
+    <input matInput [(ngModel)]="username" [disabled]="isEdit" required>
+    <mat-icon matSuffix>person</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Email</mat-label>
+    <input matInput [(ngModel)]="email" type="email" required>
+    <mat-icon matSuffix>email</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nom complet</mat-label>
+    <input matInput [(ngModel)]="fullName">
+    <mat-icon matSuffix>badge</mat-icon>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ isEdit ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe' }}</mat-label>
+    <input matInput [(ngModel)]="password" [type]="hidePassword ? 'password' : 'text'" [required]="!isEdit">
+    <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+      <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+    </button>
+  </mat-form-field>
+
+  <div class="checkbox-row">
+    <mat-checkbox [(ngModel)]="isActive" color="primary">Actif</mat-checkbox>
+    <mat-checkbox [(ngModel)]="isAdmin" color="warn">Administrateur</mat-checkbox>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Annuler</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="!isValid">
+    {{ isEdit ? 'Enregistrer' : 'Créer' }}
+  </button>
+</mat-dialog-actions>

@@ -55,6 +55,11 @@ async def main() -> None:
         print(f"[init] Compte admin cree : {DEFAULT_USERNAME} / {DEFAULT_PASSWORD}")
         print("[init] >>> WARNING : changez ce mot de passe des la premiere connexion. <<<")
 
+    # Fermer proprement le moteur SQLAlchemy pour eviter le RuntimeError
+    # "Event loop is closed" d'aiomysql a la sortie d'asyncio.run().
+    from app.core.database import engine
+    await engine.dispose()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

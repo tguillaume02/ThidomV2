@@ -1,5 +1,11 @@
+import secrets
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+
+def _generate_secret_key() -> str:
+    """Generate a random secret key at startup if none is configured."""
+    return secrets.token_hex(32)
 
 
 class Settings(BaseSettings):
@@ -9,19 +15,19 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database (supports sqlite, mysql, postgresql)
-    # SQLite:      sqlite+aiosqlite:///./thidom.db
+    # SQLite:      sqlite+aiosqlite:///./data/thidom.db
     # MySQL:       mysql+aiomysql://user:password@localhost:3306/thidom
     # PostgreSQL:  postgresql+asyncpg://user:password@localhost:5432/thidom
-    database_url: str = "sqlite+aiosqlite:///./thidom.db"
+    database_url: str = "sqlite+aiosqlite:///./data/thidom.db"
 
-    # JWT
-    secret_key: str = "thidom-secret-key-change-in-production"
+    # JWT — SECRET_KEY is auto-generated if not set in .env
+    secret_key: str = ""
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 1440
 
-    # InfluxDB
+    # InfluxDB (optional)
     influxdb_url: str = "http://localhost:8086"
-    influxdb_token: str = "thidom-influx-token"
+    influxdb_token: str = ""
     influxdb_org: str = "thidom"
     influxdb_bucket: str = "thidom_history"
 
@@ -50,3 +56,13 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Auto-generate SECRET_KEY if empty or still the old default
+if not settings.secret_key or settings.secret_key == "thidom-secret-key-change-in-production":
+    import logging
+    settings.secret_key = _generate_secret_key()
+    logging.getLogger(__name__).warning(
+        "SECRET_KEY not set in .env — using auto-generated key. "
+        "JWT tokens will be invalidated on each restart. "
+        "Set SECRET_KEY in .env for persistence."
+    )

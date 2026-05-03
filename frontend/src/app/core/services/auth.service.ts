@@ -31,12 +31,6 @@ export class AuthService {
     );
   }
 
-  register(username: string, email: string, password: string, fullName?: string): Observable<User> {
-    return this.http.post<User>(`${this.apiUrl}/register`, {
-      username, email, password, full_name: fullName
-    });
-  }
-
   logout(): void {
     localStorage.removeItem('thidom_token');
     this.currentUserSubject.next(null);

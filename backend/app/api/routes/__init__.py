@@ -1,9 +1,10 @@
 from fastapi import APIRouter
-from app.api.routes import auth, rooms, devices, plugins, scenarios, logs, schedules, history, websocket, camera, system, alexa
+from app.api.routes import auth, rooms, devices, plugins, scenarios, logs, schedules, history, websocket, camera, system, alexa, users
 
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(rooms.router, prefix="/rooms", tags=["Rooms"])
 api_router.include_router(devices.router, prefix="/devices", tags=["Devices"])
 api_router.include_router(plugins.router, prefix="/plugins", tags=["Plugins"])

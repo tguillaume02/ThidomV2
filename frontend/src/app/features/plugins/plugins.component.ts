@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,7 +9,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { Subscription } from 'rxjs';
 import { PluginService } from '@core/services/plugin.service';
+import { WebSocketService } from '@core/services/websocket.service';
 import { Plugin, PluginConnectionStatus } from '@core/models/models';
 import { PluginSetupDialogComponent } from './plugin-setup-dialog/plugin-setup-dialog.component';
 
@@ -31,11 +33,13 @@ import { PluginSetupDialogComponent } from './plugin-setup-dialog/plugin-setup-d
   templateUrl: './plugins.component.html',
   styleUrl: './plugins.component.scss',
 })
-export class PluginsComponent implements OnInit {
+export class PluginsComponent implements OnInit, OnDestroy {
   plugins: Plugin[] = [];
   statuses: Record<number, PluginConnectionStatus> = {};
   loading = true;
   syncing = false;
+
+  private wsSub?: Subscription;
 
   get controlPlugins(): Plugin[] {
     return this.plugins.filter(p => p.category === 'control');
@@ -47,12 +51,22 @@ export class PluginsComponent implements OnInit {
 
   constructor(
     private pluginService: PluginService,
+    private wsService: WebSocketService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
     this.loadPlugins();
+    this.wsSub = this.wsService.messages$.subscribe(msg => {
+      if (msg.type === 'plugin_changed') {
+        this.loadPlugins();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.wsSub?.unsubscribe();
   }
 
   loadPlugins(): void {

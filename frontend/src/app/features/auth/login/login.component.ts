@@ -34,13 +34,6 @@ export class LoginComponent {
   loading = false;
   hidePassword = true;
 
-  // Registration
-  showRegister = false;
-  regUsername = '';
-  regEmail = '';
-  regPassword = '';
-  regFullName = '';
-
   constructor(
     private authService: AuthService,
     private router: Router,
@@ -66,24 +59,6 @@ export class LoginComponent {
           'Fermer',
           { duration: 4000 }
         );
-      }
-    });
-  }
-
-  register(): void {
-    if (!this.regUsername || !this.regEmail || !this.regPassword) return;
-    this.loading = true;
-
-    this.authService.register(this.regUsername, this.regEmail, this.regPassword, this.regFullName).subscribe({
-      next: () => {
-        this.snackBar.open('Compte créé avec succès ! Connectez-vous.', 'OK', { duration: 4000 });
-        this.showRegister = false;
-        this.username = this.regUsername;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.loading = false;
-        this.snackBar.open(err.error?.detail || 'Erreur lors de l\'inscription', 'Fermer', { duration: 4000 });
       }
     });
   }
