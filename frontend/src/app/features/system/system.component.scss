@@ -15,6 +15,17 @@
 
 .section-card {
   margin-bottom: 16px;
+
+  mat-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    .spacer {
+      flex: 1;
+    }
+  }
 }
 
 .info-grid {

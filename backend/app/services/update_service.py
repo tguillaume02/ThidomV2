@@ -42,6 +42,9 @@ _VERSION_FILE = _BACKEND_DIR / "VERSION"
 DEFAULT_REPO = os.environ.get("THIDOM_GH_REPO", "tguillaume02/ThidomV2")
 
 
+_AUTO_UPDATE_FILE = _BACKEND_DIR / ".auto_update"
+
+
 class UpdateService:
     GITHUB_API = "https://api.github.com"
     CHECK_INTERVAL = 3600  # seconds
@@ -52,6 +55,22 @@ class UpdateService:
         self._last_check: Optional[str] = None
         self._update_available: bool = False
         self._task: Optional[asyncio.Task] = None
+
+    # ------------------------------------------------------------------
+    # Auto-update setting (persisted in a simple file)
+    # ------------------------------------------------------------------
+
+    @property
+    def auto_update_enabled(self) -> bool:
+        return _AUTO_UPDATE_FILE.exists()
+
+    def set_auto_update(self, enabled: bool) -> None:
+        if enabled:
+            _AUTO_UPDATE_FILE.write_text("1", encoding="utf-8")
+            logger.info("Auto-update enabled")
+        else:
+            _AUTO_UPDATE_FILE.unlink(missing_ok=True)
+            logger.info("Auto-update disabled")
 
     # ------------------------------------------------------------------
     # Local version
@@ -263,6 +282,7 @@ class UpdateService:
         local = self._read_local_version()
         return {
             "update_available": self._update_available,
+            "auto_update": self.auto_update_enabled,
             "last_check": self._last_check,
             "latest_remote": self._latest_remote,
             "local": local,
@@ -318,6 +338,20 @@ class UpdateService:
                         })
                     except Exception:
                         pass
+
+                    # Auto-apply update if enabled
+                    if self.auto_update_enabled:
+                        logger.info("Auto-update is enabled — applying update automatically")
+                        try:
+                            from app.core.websocket import manager as ws_mgr
+                            await ws_mgr.broadcast({
+                                "type": "auto_update_started",
+                                "remote_message": result.get("remote_message"),
+                            })
+                        except Exception:
+                            pass
+                        await self.apply_update()
+
                 await asyncio.sleep(self.CHECK_INTERVAL)
         except asyncio.CancelledError:
             pass

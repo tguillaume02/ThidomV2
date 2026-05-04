@@ -65,6 +65,20 @@ async def update_status():
     return update_service.get_status()
 
 
+@router.post("/auto-update")
+async def set_auto_update(body: dict, _: User = Depends(require_admin)):
+    """Enable or disable automatic updates. Admin only."""
+    enabled = body.get("enabled", False)
+    update_service.set_auto_update(bool(enabled))
+    return {"auto_update": update_service.auto_update_enabled}
+
+
+@router.get("/auto-update")
+async def get_auto_update():
+    """Return current auto-update setting."""
+    return {"auto_update": update_service.auto_update_enabled}
+
+
 @router.get("/update-log")
 async def get_update_log(lines: int = Query(50, ge=1, le=500)):
     """Return the tail of the update log and the current update status.

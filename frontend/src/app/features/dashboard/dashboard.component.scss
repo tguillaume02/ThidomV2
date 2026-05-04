@@ -613,6 +613,26 @@
     }
   }
 
+  .card-footer {
+    padding: 4px 8px;
+    border-top: 1px solid var(--thidom-border);
+
+    .last-seen {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      color: var(--thidom-text-secondary);
+      opacity: 0.7;
+
+      mat-icon {
+        font-size: 13px;
+        width: 13px;
+        height: 13px;
+      }
+    }
+  }
+
   // Actions
   .device-actions {
     display: flex;

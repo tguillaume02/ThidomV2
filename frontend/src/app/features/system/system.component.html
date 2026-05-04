@@ -94,6 +94,14 @@
         <mat-icon>{{ updating ? 'hourglass_empty' : 'download' }}</mat-icon>
         {{ updating ? 'Mise a jour en cours...' : 'Mettre a jour' }}
       </button>
+      <span class="spacer"></span>
+      <mat-slide-toggle
+        [(ngModel)]="autoUpdate"
+        (change)="toggleAutoUpdate()"
+        color="accent"
+        matTooltip="Appliquer automatiquement les mises a jour disponibles">
+        Auto-update
+      </mat-slide-toggle>
     </mat-card-actions>
   </mat-card>
 </div>

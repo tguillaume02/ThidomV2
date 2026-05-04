@@ -9,6 +9,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { FormsModule } from '@angular/forms';
 import { environment } from '@environments/environment';
 import { UpdateProgressDialogComponent } from './update-progress-dialog/update-progress-dialog.component';
 
@@ -42,6 +44,7 @@ interface ApplyResult {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatCardModule,
     MatIconModule,
     MatButtonModule,
@@ -50,6 +53,7 @@ interface ApplyResult {
     MatSnackBarModule,
     MatDividerModule,
     MatDialogModule,
+    MatSlideToggleModule,
   ],
   templateUrl: './system.component.html',
   styleUrl: './system.component.scss',
@@ -59,6 +63,7 @@ export class SystemComponent implements OnInit {
   updateCheck: UpdateCheckResult | null = null;
   checking = false;
   updating = false;
+  autoUpdate = false;
 
   private apiUrl = environment.apiUrl;
 
@@ -71,6 +76,29 @@ export class SystemComponent implements OnInit {
   ngOnInit(): void {
     this.loadVersion();
     this.checkForUpdate();
+    this.loadAutoUpdate();
+  }
+
+  loadAutoUpdate(): void {
+    this.http.get<{ auto_update: boolean }>(`${this.apiUrl}/system/auto-update`).subscribe({
+      next: res => this.autoUpdate = res.auto_update,
+    });
+  }
+
+  toggleAutoUpdate(): void {
+    this.http.post<{ auto_update: boolean }>(`${this.apiUrl}/system/auto-update`, { enabled: this.autoUpdate }).subscribe({
+      next: res => {
+        this.autoUpdate = res.auto_update;
+        this.snackBar.open(
+          res.auto_update ? 'Mise a jour automatique activee' : 'Mise a jour automatique desactivee',
+          'OK', { duration: 3000 },
+        );
+      },
+      error: () => {
+        this.autoUpdate = !this.autoUpdate;
+        this.snackBar.open('Erreur', 'Fermer', { duration: 3000 });
+      },
+    });
   }
 
   loadVersion(): void {

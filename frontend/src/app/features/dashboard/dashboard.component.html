@@ -66,6 +66,9 @@
                 <div class="device-info"><span class="device-name">{{ device.name }}</span></div>
               </div>
               <app-weather-widget [device]="device"></app-weather-widget>
+              @if (device.state?.last_seen) {
+                <div class="card-footer"><span class="last-seen"><mat-icon>schedule</mat-icon>{{ formatLastSeen(device.state.last_seen) }}</span></div>
+              }
             </div>
           } @else if (isBourseDevice(device)) {
             <div class="device-card thidom-card" [class.device-on]="isDeviceOn(device)">
@@ -74,6 +77,9 @@
                 <div class="device-info"><span class="device-name">{{ device.name }}</span></div>
               </div>
               <app-bourse-widget [device]="device"></app-bourse-widget>
+              @if (device.state?.last_seen) {
+                <div class="card-footer"><span class="last-seen"><mat-icon>schedule</mat-icon>{{ formatLastSeen(device.state.last_seen) }}</span></div>
+              }
             </div>
           } @else {
             <div class="device-card thidom-card" [class.device-on]="isDeviceOn(device)" [class.device-alert]="device.state?.smoke === true" [class.device-camera]="isCamera(device)">
