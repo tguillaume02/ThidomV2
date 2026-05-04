@@ -109,7 +109,7 @@ class SettingsWindow:
 class AlertApp:
     def __init__(self):
         self.root=tk.Tk(); self.root.title("ThiDomV2 - Alerte Appareil"); self.root.geometry("500x400"); self.root.resizable(False,False)
-        self.config=load_config(); self.alerting=False; self.alert_device_id=None; self.ws=None; self.token=None
+        self.config=load_config(); self.alerting=False; self.alert_device_id=None; self.ws=None; self.token=None; self.device_name=""
         self.tray_icon=None
         self._build_ui(); self._connect()
         # Demarrer cache (system tray uniquement)
@@ -178,9 +178,29 @@ class AlertApp:
         self.device_info_label.config(text=f"Appareil surveille: #{did}" if did else "Aucun appareil configure")
         self._log("Config mise a jour. Reconnexion...")
         if self.ws: self.ws.close()
+        # Re-fetch device name with new config
+        threading.Thread(target=self._fetch_device_name, daemon=True).start()
 
     def _connect(self):
-        self._authenticate(); threading.Thread(target=self._ws_loop,daemon=True).start()
+        self._authenticate(); self._fetch_device_name(); threading.Thread(target=self._ws_loop,daemon=True).start()
+
+    def _fetch_device_name(self):
+        """Recupere le nom de l appareil surveille via l API."""
+        did = self.config.get("device_id", "")
+        if not did: return
+        try:
+            headers = {}
+            if self.token: headers["Authorization"] = f"Bearer {self.token}"
+            r = requests.get(f"{self.config['backend_url']}/ThiDom/api/devices/{did}", headers=headers, timeout=5, verify=False)
+            if r.ok:
+                data = r.json()
+                self.device_name = data.get("name", f"Appareil #{did}")
+                self.root.after(0, lambda: self.device_info_label.config(text=f"Appareil surveille: {self.device_name}"))
+                self._log(f"Appareil: {self.device_name}")
+            else:
+                self.device_name = f"Appareil #{did}"
+        except Exception:
+            self.device_name = f"Appareil #{did}"
 
     def _log(self,msg):
         self.root.after(0,self._append_log,msg)
@@ -236,9 +256,10 @@ class AlertApp:
             threading.Thread(target=self._play_alert_sound,daemon=True).start()
 
     def _show_alert(self,device_id):
-        self.device_label.config(text=f"APPAREIL #{device_id} ACTIVE"); self.stop_button.config(state=tk.NORMAL)
+        name = getattr(self, 'device_name', f'Appareil #{device_id}')
+        self.device_label.config(text=f"{name} ACTIVE"); self.stop_button.config(state=tk.NORMAL)
         self.root.deiconify(); self.root.lift(); self.root.attributes("-topmost",True); self.root.after(100,lambda:self.root.attributes("-topmost",False))
-        if self.tray_icon: self.tray_icon.icon = self._create_tray_image(alert=True); self.tray_icon.notify("Appareil active!", "ThiDomV2 Alert")
+        if self.tray_icon: self.tray_icon.icon = self._create_tray_image(alert=True); self.tray_icon.notify(f"{name} active!", "ThiDomV2 Alert")
 
     def _play_alert_sound(self):
         freq=int(self.config.get("alert_frequency",1000)); dur=int(self.config.get("alert_duration_ms",500)); rep=int(self.config.get("alert_repeat_ms",2000))
@@ -248,6 +269,8 @@ class AlertApp:
         self.alerting=False; self.device_label.config(text=""); self.stop_button.config(state=tk.DISABLED); self.status_label.config(text="Connecte - En ecoute")
         if self.tray_icon: self.tray_icon.icon = self._create_tray_image(alert=False)
         if self.alert_device_id: self._turn_off_device(self.alert_device_id); self.alert_device_id=None
+        # Fermer la fenetre (retour au tray)
+        self.root.after(500, self._hide_to_tray)
 
     def _turn_off_device(self,device_id):
         try:
@@ -262,4 +285,24 @@ class AlertApp:
         """Reduire = cacher dans le tray."""
         self._hide_to_tray()
 
-if __name__=="__main__": AlertApp()
+def _ensure_single_instance():
+    """Empeche le lancement de plusieurs instances via un Named Mutex Windows."""
+    mutex_name = "Global\\ThiDomV2AlertMutex"
+    kernel32 = ctypes.windll.kernel32
+    mutex = kernel32.CreateMutexW(None, True, mutex_name)
+    last_error = kernel32.GetLastError()
+    if last_error == 183:  # ERROR_ALREADY_EXISTS
+        kernel32.CloseHandle(mutex)
+        # Tenter de mettre au premier plan la fenetre existante
+        ctypes.windll.user32.MessageBoxW(
+            None,
+            "ThiDomV2 Alert est déjà en cours d'exécution.\nVérifiez la zone de notification (icônes cachées).",
+            "ThiDomV2 Alert",
+            0x40  # MB_ICONINFORMATION
+        )
+        sys.exit(0)
+    return mutex  # Garder la reference pour ne pas liberer le mutex
+
+if __name__=="__main__":
+    _mutex = _ensure_single_instance()
+    AlertApp()
