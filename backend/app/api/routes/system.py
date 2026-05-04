@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.core.security import get_current_user
 from app.models.user import User
 from app.services.update_service import update_service
+from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
@@ -62,4 +63,38 @@ async def apply_update(_: User = Depends(require_admin)):
 async def update_status():
     """Return cached update status without querying GitHub."""
     return update_service.get_status()
+
+
+@router.get("/update-log")
+async def get_update_log(lines: int = Query(50, ge=1, le=500)):
+    """Return the tail of the update log and the current update status.
+
+    The status file (update.status) is written by the update script:
+      - 'running' at the start
+      - 'done' on success
+      - 'failed' on error
+    """
+    backend_dir = Path(__file__).resolve().parent.parent.parent
+    log_file = backend_dir / "update.log"
+    status_file = backend_dir / "update.status"
+
+    log_lines: list[str] = []
+    if log_file.exists():
+        try:
+            all_lines = log_file.read_text(encoding="utf-8", errors="replace").splitlines()
+            log_lines = all_lines[-lines:]
+        except Exception:
+            pass
+
+    update_status_value = "idle"
+    if status_file.exists():
+        try:
+            update_status_value = status_file.read_text(encoding="utf-8").strip()
+        except Exception:
+            pass
+
+    return {
+        "status": update_status_value,
+        "log": log_lines,
+    }
 

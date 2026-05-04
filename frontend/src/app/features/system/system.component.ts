@@ -8,7 +8,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { environment } from '@environments/environment';
+import { UpdateProgressDialogComponent } from './update-progress-dialog/update-progress-dialog.component';
 
 interface VersionInfo {
   tag: string;
@@ -47,6 +49,7 @@ interface ApplyResult {
     MatChipsModule,
     MatSnackBarModule,
     MatDividerModule,
+    MatDialogModule,
   ],
   templateUrl: './system.component.html',
   styleUrl: './system.component.scss',
@@ -62,6 +65,7 @@ export class SystemComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private snackBar: MatSnackBar,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -96,11 +100,10 @@ export class SystemComponent implements OnInit {
       next: res => {
         this.updating = false;
         if (res.success) {
-          this.snackBar.open(
-            'Mise a jour lancee. Le service va redemarrer...',
-            'Recharger',
-            { duration: 0 },
-          ).onAction().subscribe(() => window.location.reload());
+          this.dialog.open(UpdateProgressDialogComponent, {
+            width: '700px',
+            disableClose: true,
+          });
         } else {
           this.snackBar.open('Erreur : ' + res.output, 'Fermer', { duration: 8000 });
         }

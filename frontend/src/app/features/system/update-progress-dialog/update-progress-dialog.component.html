@@ -1,0 +1,52 @@
+<h2 mat-dialog-title>
+  <mat-icon [class]="status">{{ statusIcon }}</mat-icon>
+  {{ statusLabel }}
+</h2>
+
+<mat-dialog-content>
+  @if (status === 'running') {
+    <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+  }
+
+  <div class="log-container" #logContainer>
+    @for (line of logLines; track $index) {
+      <div class="log-line"
+           [class.log-error]="line.includes('[ERROR]') || line.includes('FAILED')"
+           [class.log-warn]="line.includes('[WARN]') || line.includes('warning')"
+           [class.log-success]="line.includes('terminee') || line.includes('OK')">
+        {{ line }}
+      </div>
+    }
+    @if (logLines.length === 0 && status === 'running') {
+      <div class="log-line log-wait">Demarrage de la mise a jour...</div>
+    }
+  </div>
+
+  @if (status === 'done') {
+    <div class="status-message success">
+      <mat-icon>check_circle</mat-icon>
+      <span>La mise a jour est terminee. Rechargez la page pour utiliser la nouvelle version.</span>
+    </div>
+  }
+  @if (status === 'failed') {
+    <div class="status-message error">
+      <mat-icon>error</mat-icon>
+      <span>La mise a jour a echoue. Consultez les logs ci-dessus pour plus de details.</span>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (isFinished) {
+    @if (status === 'done') {
+      <button mat-raised-button color="primary" (click)="reload()">
+        <mat-icon>refresh</mat-icon>
+        Recharger la page
+      </button>
+    } @else {
+      <button mat-button mat-dialog-close>Fermer</button>
+    }
+  } @else {
+    <span class="running-hint">Ne fermez pas cette fenetre...</span>
+  }
+</mat-dialog-actions>

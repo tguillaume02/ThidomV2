@@ -208,6 +208,11 @@ class UpdateService:
 
         try:
             log_path = _BACKEND_DIR / "update.log"
+            status_path = _BACKEND_DIR / "update.status"
+            # Clear previous log and set status to 'running'
+            log_path.write_text("", encoding="utf-8")
+            status_path.write_text("running", encoding="utf-8")
+
             if script.suffix == ".ps1":
                 cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)]
                 shell = False

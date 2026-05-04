@@ -48,6 +48,11 @@ for bin in curl unzip jq python3; do
   command -v "$bin" >/dev/null 2>&1 || { err "$bin requis. Installez-le."; exit 1; }
 done
 
+# ---------- Fichier de statut pour suivi depuis l'UI web ----------
+STATUS_FILE="$INSTALL_DIR/backend/update.status"
+echo "running" > "$STATUS_FILE" 2>/dev/null || true
+trap 'echo "failed" > "$STATUS_FILE" 2>/dev/null || true' ERR
+
 # ---------- Resolution de l'URL de l'asset ----------
 log "Recherche de la release '$TAG' sur $GH_REPO..."
 
@@ -166,4 +171,5 @@ built=$BUILT
 mode=no-docker
 EOF
 
+echo "done" > "$STATUS_FILE" 2>/dev/null || true
 log "Mise a jour terminee."

@@ -5,10 +5,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Subscription } from 'rxjs';
 import { WebSocketService } from '@core/services/websocket.service';
 import { environment } from '@environments/environment';
+import { UpdateProgressDialogComponent } from '../../features/system/update-progress-dialog/update-progress-dialog.component';
 
 @Component({
   selector: 'app-update-banner',
@@ -19,6 +21,7 @@ import { environment } from '@environments/environment';
     MatButtonModule,
     MatProgressBarModule,
     MatSnackBarModule,
+    MatDialogModule,
   ],
   templateUrl: './update-banner.component.html',
   styleUrl: './update-banner.component.scss',
@@ -47,6 +50,7 @@ export class UpdateBannerComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private wsService: WebSocketService,
     private snackBar: MatSnackBar,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -88,12 +92,9 @@ export class UpdateBannerComponent implements OnInit, OnDestroy {
         this.updating = false;
         if (res.success) {
           this.updateAvailable = false;
-          this.snackBar.open(
-            'Mise a jour appliquee. Redemarrage necessaire.',
-            'Recharger',
-            { duration: 0 },
-          ).onAction().subscribe(() => {
-            window.location.reload();
+          this.dialog.open(UpdateProgressDialogComponent, {
+            width: '700px',
+            disableClose: true,
           });
         } else {
           this.snackBar.open(

@@ -1,0 +1,68 @@
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    &.running { color: #1976d2; animation: spin 1.5s linear infinite; }
+    &.done    { color: #4caf50; }
+    &.failed  { color: #f44336; }
+  }
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+.log-container {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 12px;
+  border-radius: 6px;
+  max-height: 350px;
+  min-height: 150px;
+  overflow-y: auto;
+  margin: 12px 0;
+}
+
+.log-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+
+  &.log-error   { color: #f44336; }
+  &.log-warn    { color: #ff9800; }
+  &.log-success { color: #4caf50; }
+  &.log-wait    { color: #888; font-style: italic; }
+}
+
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+
+  &.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &.error {
+    background: #ffebee;
+    color: #c62828;
+  }
+}
+
+.running-hint {
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+}
+
+mat-progress-bar {
+  margin-bottom: 8px;
+}
