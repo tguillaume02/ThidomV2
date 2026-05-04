@@ -629,7 +629,7 @@ class RF24NetworkPlugin(BasePlugin):
     async def _auto_discover_device(self, parsed: dict, state: dict):
         """Auto-create a device in the 'Decouverts' room when an unknown
         RF24 node sends data for the first time."""
-        from sqlalchemy import select
+        from sqlalchemy import select, func, cast, String
         from app.core.database import async_session
         from app.core.websocket import manager as ws_manager
         from app.models.device import Device
@@ -675,12 +675,13 @@ class RF24NetworkPlugin(BasePlugin):
                 }
 
                 # Check if device already exists (race condition guard)
+                # Use JSON_EXTRACT which works on both MariaDB and SQLite
                 result = await db.execute(
                     select(Device).where(
                         Device.plugin_id == plugin_id,
-                        Device.config["device_guid"].as_string() == guid,
-                        Device.config["widget_id"].as_string() == wid,
-                        Device.config["pin_id"].as_string() == pin_id,
+                        func.json_unquote(func.json_extract(Device.config, '$.device_guid')) == guid,
+                        func.json_unquote(func.json_extract(Device.config, '$.widget_id')) == wid,
+                        func.json_unquote(func.json_extract(Device.config, '$.pin_id')) == pin_id,
                     )
                 )
                 if result.scalar_one_or_none():
