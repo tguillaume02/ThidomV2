@@ -388,12 +388,12 @@ class RF24NetworkPlugin(BasePlugin):
                 # Broadcast raw line for live serial monitor
                 try:
                     from app.core.websocket import manager as ws_manager
-                    asyncio.create_task(ws_manager.broadcast({
+                    await ws_manager.broadcast({
                         "type": "serial_monitor",
                         "plugin": "rf24network",
                         "direction": "RX",
                         "raw": raw,
-                    }))
+                    })
                 except Exception:
                     pass
 
@@ -415,14 +415,14 @@ class RF24NetworkPlugin(BasePlugin):
                             logger.info("RF24 node %s (GUID %s) announced widget %s pin %s", node_id, guid, wid, raw_pin)
                         try:
                             from app.core.websocket import manager as ws_mgr
-                            asyncio.create_task(ws_mgr.broadcast({
+                            await ws_mgr.broadcast({
                                 "type": "rf24_node_boot",
                                 "plugin": "rf24network",
                                 "node_id": node_id,
                                 "guid": guid,
                                 "widget_id": wid,
                                 "pin_id": raw_pin,
-                            }))
+                            })
                         except Exception:
                             pass
                         continue
@@ -442,9 +442,9 @@ class RF24NetworkPlugin(BasePlugin):
                         # Persist Vcc into all DB devices sharing the same GUID
                         try:
                             vcc_state = {"voltage": vcc_val, "battery": vcc_val}
-                            asyncio.create_task(self._persist_vcc(guid, vcc_state))
+                            await self._persist_vcc(guid, vcc_state)
                         except Exception:
-                            logger.exception("Failed to schedule Vcc persistence for GUID %s", guid)
+                            logger.exception("Failed Vcc persistence for GUID %s", guid)
                     else:
                         key = self._cache_key(
                             parsed["node_id"], guid, wid, parsed["pin_id"],
@@ -459,9 +459,10 @@ class RF24NetworkPlugin(BasePlugin):
                         logger.debug("RF24 received: %s -> %s", key, state)
                         # Persist to DB, broadcast via WS, trigger scenarios
                         try:
-                            asyncio.create_task(self._persist_device_state(parsed, state))
+                            count = await self._persist_device_state(parsed, state)
+                            logger.debug("RF24 persist result: %s devices updated", count)
                         except Exception:
-                            logger.exception("Failed to schedule DB persistence for RF24 message")
+                            logger.exception("RF24 persist failed for %s", key)
                 else:
                     logger.debug("RF24 unrecognised line: %s", raw)
         except asyncio.CancelledError:
@@ -489,12 +490,12 @@ class RF24NetworkPlugin(BasePlugin):
         # Broadcast TX for live serial monitor
         try:
             from app.core.websocket import manager as ws_manager
-            asyncio.create_task(ws_manager.broadcast({
+            await ws_manager.broadcast({
                 "type": "serial_monitor",
                 "plugin": "rf24network",
                 "direction": "TX",
                 "raw": cmd.strip(),
-            }))
+            })
         except Exception:
             pass
 
@@ -613,10 +614,11 @@ class RF24NetworkPlugin(BasePlugin):
 
         return await self.get_state(device_config)
 
-    async def _persist_device_state(self, parsed: dict, state: dict):
+    async def _persist_device_state(self, parsed: dict, state: dict) -> int:
         """Persist a parsed RF24 device state update to DB via the shared bridge.
 
         If no existing device matches, auto-create one in the 'Decouverts' room.
+        Returns the number of devices updated.
         """
         from app.services.plugin_state_bridge import push_state_update
         guid = str(parsed.get("guid", ""))
@@ -637,10 +639,14 @@ class RF24NetworkPlugin(BasePlugin):
             return True
 
         count = await push_state_update("rf24network", state, match_fn)
+        logger.debug("RF24 push_state_update: %d matches for guid=%s wid=%s pin=%s node=%s", count, guid, wid, pin_id, node_id)
 
         # Auto-discover: create device if no existing one matched
         if count == 0:
+            logger.info("RF24 auto-discovering device: guid=%s wid=%s pin=%s node=%s", guid, wid, pin_id, node_id)
             await self._auto_discover_device(parsed, state)
+
+        return count
 
     async def _persist_vcc(self, guid: str, vcc_state: dict):
         """Persist Vcc voltage into all DB devices sharing the same GUID."""
