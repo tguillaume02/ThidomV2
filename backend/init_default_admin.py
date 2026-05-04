@@ -35,30 +35,31 @@ async def main() -> None:
     print("[init] Creation de la structure de la base (si necessaire)...")
     await init_db()
 
-    async with async_session() as db:
-        # Y a-t-il deja un admin ?
-        result = await db.execute(select(User).where(User.is_admin.is_(True)))
-        existing = result.scalars().first()
-        if existing:
-            print(f"[init] Admin deja present (username='{existing.username}'). Rien a faire.")
-            return
+    try:
+        async with async_session() as db:
+            # Y a-t-il deja un admin ?
+            result = await db.execute(select(User).where(User.is_admin.is_(True)))
+            existing = result.scalars().first()
+            if existing:
+                print(f"[init] Admin deja present (username='{existing.username}'). Rien a faire.")
+                return
 
-        admin = User(
-            username=DEFAULT_USERNAME,
-            email=DEFAULT_EMAIL,
-            hashed_password=get_password_hash(DEFAULT_PASSWORD),
-            full_name=DEFAULT_FULLNAME,
-            is_admin=True,
-        )
-        db.add(admin)
-        await db.commit()
-        print(f"[init] Compte admin cree : {DEFAULT_USERNAME} / {DEFAULT_PASSWORD}")
-        print("[init] >>> WARNING : changez ce mot de passe des la premiere connexion. <<<")
-
-    # Fermer proprement le moteur SQLAlchemy pour eviter le RuntimeError
-    # "Event loop is closed" d'aiomysql a la sortie d'asyncio.run().
-    from app.core.database import engine
-    await engine.dispose()
+            admin = User(
+                username=DEFAULT_USERNAME,
+                email=DEFAULT_EMAIL,
+                hashed_password=get_password_hash(DEFAULT_PASSWORD),
+                full_name=DEFAULT_FULLNAME,
+                is_admin=True,
+            )
+            db.add(admin)
+            await db.commit()
+            print(f"[init] Compte admin cree : {DEFAULT_USERNAME} / {DEFAULT_PASSWORD}")
+            print("[init] >>> WARNING : changez ce mot de passe des la premiere connexion. <<<")
+    finally:
+        # Fermer proprement le moteur SQLAlchemy pour eviter le RuntimeError
+        # "Event loop is closed" d'aiomysql a la sortie d'asyncio.run().
+        from app.core.database import engine
+        await engine.dispose()
 
 
 if __name__ == "__main__":
