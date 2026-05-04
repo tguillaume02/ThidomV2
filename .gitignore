@@ -5,6 +5,4 @@ backend/venv/
 backend/*.db
 backend/.env
 __pycache__/
-/alert-app/build/ThiDomAlert
-/alert-app/dist
-/alert-app/dist/ThiDomAlert.exe
+/alert-app/build/
