@@ -176,12 +176,27 @@ UNIT
   sleep 2; sudo systemctl status --no-pager "$SVC_NAME" | head -n 8 || true
 
   SUDOERS_FILE="/etc/sudoers.d/thidom"; SCRIPT_ABS="$SVC_INSTALL_DIR/update-no-docker.sh"
-  if [ ! -f "$SUDOERS_FILE" ]; then
-    [ -f "$ROOT_DIR/update-no-docker.sh" ] && [ "$ROOT_DIR" != "$SVC_INSTALL_DIR" ] && sudo cp "$ROOT_DIR/update-no-docker.sh" "$SCRIPT_ABS" && sudo chmod +x "$SCRIPT_ABS"
-    echo "$SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS, $SCRIPT_ABS *, /usr/bin/systemctl restart $SVC_NAME, /usr/bin/systemctl reload ${APACHE_SVC:-apache2}, /usr/bin/bash" | sudo tee "$SUDOERS_FILE" >/dev/null
-    sudo chmod 440 "$SUDOERS_FILE"
-    sudo visudo -c -f "$SUDOERS_FILE" >/dev/null 2>&1 || { warn "Sudoers invalide."; sudo rm -f "$SUDOERS_FILE"; }
-  fi
+  [ -f "$ROOT_DIR/update-no-docker.sh" ] && [ "$ROOT_DIR" != "$SVC_INSTALL_DIR" ] && sudo cp "$ROOT_DIR/update-no-docker.sh" "$SCRIPT_ABS" && sudo chmod +x "$SCRIPT_ABS"
+  # Always (re)create sudoers so it stays in sync with the installed script path
+  cat <<SUDOERS | sudo tee "$SUDOERS_FILE" >/dev/null
+# ThiDom - allow the backend service user to run update & service commands
+$SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS
+$SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS *
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart $SVC_NAME
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload ${APACHE_SVC:-apache2}
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/tee $SVC_INSTALL_DIR/backend/update.log
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/tee $SVC_INSTALL_DIR/backend/update.status
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/chown *
+SUDOERS
+  sudo chmod 440 "$SUDOERS_FILE"
+  sudo visudo -c -f "$SUDOERS_FILE" >/dev/null 2>&1 || { warn "Sudoers invalide."; sudo rm -f "$SUDOERS_FILE"; }
+  log "Sudoers configure ($SUDOERS_FILE)."
+
+  # Pre-create update log/status files with correct ownership
+  for f in "$SVC_INSTALL_DIR/backend/update.log" "$SVC_INSTALL_DIR/backend/update.status"; do
+    sudo touch "$f"
+    sudo chown "$SVC_USER:$SVC_USER" "$f"
+  done
 fi
 
 # ---- init base + admin ----

@@ -210,39 +210,39 @@ class UpdateService:
             log_path = _BACKEND_DIR / "update.log"
             status_path = _BACKEND_DIR / "update.status"
             # Clear previous log and set status to 'running'
-            try:
-                log_path.write_text("", encoding="utf-8")
-                status_path.write_text("running", encoding="utf-8")
-            except PermissionError:
-                # Files may be owned by root after a previous update;
-                # recreate them via sudo
-                await asyncio.to_thread(
-                    subprocess.run,
-                    ["sudo", "-n", "bash", "-c",
-                     f"echo -n '' > {shlex.quote(str(log_path))} && "
-                     f"echo -n 'running' > {shlex.quote(str(status_path))} && "
-                     f"chown $(id -un):$(id -gn) {shlex.quote(str(log_path))} {shlex.quote(str(status_path))}"],
-                    check=False,
-                )
+            # Try direct write first, fall back to sudo if permission denied
+            for fpath, content in [(log_path, ""), (status_path, "running")]:
+                try:
+                    fpath.write_text(content, encoding="utf-8")
+                except PermissionError:
+                    await asyncio.to_thread(
+                        subprocess.run,
+                        ["sudo", "-n", "chown",
+                         f"{os.getuid()}:{os.getgid()}", str(fpath)],
+                        check=False,
+                    )
+                    try:
+                        fpath.write_text(content, encoding="utf-8")
+                    except Exception:
+                        pass
 
             if script.suffix == ".ps1":
                 cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)]
-                shell = False
             else:
-                # nohup so the script survives the backend service restart triggered by itself
-                # Use bash -c with the full command to redirect output to log
-                cmd_line = (
-                    f"nohup sudo -n {shlex.quote(str(script))} "
-                    f">> {shlex.quote(str(log_path))} 2>&1 &"
-                )
-                cmd = ["/usr/bin/bash", "-c", cmd_line]
-                shell = False
+                # Launch the update script directly via sudo with output
+                # redirected to the log file. nohup + start_new_session
+                # ensure the script survives the backend restart it triggers.
+                cmd = [
+                    "sudo", "-n", str(script),
+                ]
 
+            log_fd = open(str(log_path), "a")
             await asyncio.to_thread(
                 subprocess.Popen,
                 cmd,
                 cwd=str(script.parent),
-                shell=shell,
+                stdout=log_fd,
+                stderr=log_fd,
                 start_new_session=True,
             )
             logger.info("Update script launched: %s (logs: %s)", script, log_path)
