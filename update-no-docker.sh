@@ -172,6 +172,6 @@ mode=no-docker
 EOF
 
 echo "done" > "$STATUS_FILE" 2>/dev/null || true
-# Ensure log/status files are readable by the backend service user
-sudo chown "$SVC_USER:$SVC_USER" "$INSTALL_DIR/backend/update.log" "$STATUS_FILE" 2>/dev/null || true
+# Ensure ALL backend files (including VERSION, logs, .auto_update) belong to the service user
+sudo chown -R "$SVC_USER:$SVC_USER" "$INSTALL_DIR/backend"
 log "Mise a jour terminee."
