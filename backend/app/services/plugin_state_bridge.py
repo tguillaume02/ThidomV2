@@ -95,6 +95,7 @@ async def push_state_update(
             )
             plugin_ids = [row[0] for row in result.all()]
             if not plugin_ids:
+                logger.warning("push_state_update: no plugin found for slug '%s'", plugin_slug)
                 return 0
 
             # 2. Load candidate devices
@@ -113,6 +114,10 @@ async def push_state_update(
                     continue
 
             if not matched_devices:
+                logger.debug(
+                    "push_state_update: 0 matches for '%s' among %d devices",
+                    plugin_slug, len(devices),
+                )
                 return 0
 
             # 3. Merge state and mark dirty
@@ -133,6 +138,7 @@ async def push_state_update(
                 # WebSocket broadcast
                 try:
                     await manager.broadcast_device_state(device.id, device.state or {})
+                    logger.debug("WS broadcast device_state_update for device %d (%d clients)", device.id, len(manager.active_connections))
                 except Exception:
                     logger.exception("broadcast_device_state failed for device %d", device.id)
 
