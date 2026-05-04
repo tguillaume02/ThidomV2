@@ -178,7 +178,7 @@ UNIT
   SUDOERS_FILE="/etc/sudoers.d/thidom"; SCRIPT_ABS="$SVC_INSTALL_DIR/update-no-docker.sh"
   if [ ! -f "$SUDOERS_FILE" ]; then
     [ -f "$ROOT_DIR/update-no-docker.sh" ] && [ "$ROOT_DIR" != "$SVC_INSTALL_DIR" ] && sudo cp "$ROOT_DIR/update-no-docker.sh" "$SCRIPT_ABS" && sudo chmod +x "$SCRIPT_ABS"
-    echo "$SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS, /usr/bin/systemctl restart $SVC_NAME, /usr/bin/systemctl reload ${APACHE_SVC:-apache2}" | sudo tee "$SUDOERS_FILE" >/dev/null
+    echo "$SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS, $SCRIPT_ABS *, /usr/bin/systemctl restart $SVC_NAME, /usr/bin/systemctl reload ${APACHE_SVC:-apache2}, /usr/bin/bash" | sudo tee "$SUDOERS_FILE" >/dev/null
     sudo chmod 440 "$SUDOERS_FILE"
     sudo visudo -c -f "$SUDOERS_FILE" >/dev/null 2>&1 || { warn "Sudoers invalide."; sudo rm -f "$SUDOERS_FILE"; }
   fi

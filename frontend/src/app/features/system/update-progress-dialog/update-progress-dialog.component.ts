@@ -81,6 +81,10 @@ export class UpdateProgressDialogComponent implements OnInit, OnDestroy {
         this.backendRestarting = false;
         this.status = res.status as any;
         this.logLines = res.log;
+        // If status is still idle after several polls, the script may not have started
+        if (this.status === 'idle' && this.logLines.length === 0) {
+          this.logLines = ['En attente du demarrage du script de mise a jour...'];
+        }
         this.scrollToBottom();
         if (this.isFinished && this.pollTimer) {
           clearInterval(this.pollTimer);
@@ -88,11 +92,13 @@ export class UpdateProgressDialogComponent implements OnInit, OnDestroy {
           this.dialogRef.disableClose = false;
         }
       },
-      error: () => {
-        // Backend is restarting during update — keep polling
+      error: (err) => {
         this.errorCount++;
         if (this.errorCount >= 2) {
           this.backendRestarting = true;
+        }
+        if (this.errorCount === 1) {
+          this.logLines = [...this.logLines, `[${new Date().toLocaleTimeString()}] Connexion au serveur perdue (${err.status || 'timeout'})...`];
         }
       },
     });

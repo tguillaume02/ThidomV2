@@ -230,8 +230,12 @@ class UpdateService:
                 shell = False
             else:
                 # nohup so the script survives the backend service restart triggered by itself
-                cmd_line = f"nohup sudo -n {shlex.quote(str(script))} >> {shlex.quote(str(log_path))} 2>&1 &"
-                cmd = ["bash", "-lc", cmd_line]
+                # Use bash -c with the full command to redirect output to log
+                cmd_line = (
+                    f"nohup sudo -n {shlex.quote(str(script))} "
+                    f">> {shlex.quote(str(log_path))} 2>&1 &"
+                )
+                cmd = ["/usr/bin/bash", "-c", cmd_line]
                 shell = False
 
             await asyncio.to_thread(
