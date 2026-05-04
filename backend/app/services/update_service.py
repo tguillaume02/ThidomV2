@@ -132,10 +132,23 @@ class UpdateService:
             except Exception:
                 pass
 
-        # An update is "available" when the remote tag differs from the local one,
-        # or when local is unknown (fresh install never run through update*).
-        self._update_available = bool(remote_tag) and remote_tag != local_tag and \
-            (not local_sha or not remote_sha or remote_sha != local_sha)
+        # An update is "available" when:
+        # 1. The remote tag differs from the local one (new stable release), OR
+        # 2. Same tag but different SHA (rolling release with new commit), OR
+        # 3. Local version is unknown (fresh install).
+        if not remote_tag:
+            self._update_available = False
+        elif not local_tag:
+            # Fresh install, never updated — always offer the remote version
+            self._update_available = True
+        elif remote_tag != local_tag:
+            # Different tag (e.g. v1.0 -> v1.1)
+            self._update_available = True
+        elif remote_sha and local_sha:
+            # Same tag (rolling release) — compare commit SHAs
+            self._update_available = remote_sha != local_sha
+        else:
+            self._update_available = False
 
         self._latest_remote = {
             "tag": remote_tag,
