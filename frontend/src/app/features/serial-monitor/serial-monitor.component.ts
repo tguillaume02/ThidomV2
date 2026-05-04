@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +11,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { WebSocketService, WsMessage } from '@core/services/websocket.service';
+import { environment } from '@environments/environment';
 
 interface SerialLine {
   time: string;
@@ -49,7 +51,10 @@ export class SerialMonitorComponent implements OnInit, OnDestroy {
 
   @ViewChild('logContainer') logContainer?: ElementRef<HTMLDivElement>;
 
-  constructor(private wsService: WebSocketService) {}
+  constructor(
+    private wsService: WebSocketService,
+    private http: HttpClient,
+  ) {}
 
   ngOnInit(): void {
     this.wsSub = this.wsService.messages$.subscribe((msg: WsMessage) => {
@@ -97,6 +102,10 @@ export class SerialMonitorComponent implements OnInit, OnDestroy {
 
   togglePause(): void {
     this.paused = !this.paused;
+  }
+
+  sendTest(): void {
+    this.http.post(`${environment.apiUrl}/system/serial-test`, {}).subscribe();
   }
 
   private scrollToBottom(): void {

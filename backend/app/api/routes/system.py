@@ -98,3 +98,24 @@ async def get_update_log(lines: int = Query(50, ge=1, le=500)):
         "log": log_lines,
     }
 
+
+@router.post("/serial-test")
+async def serial_test(_: User = Depends(require_admin)):
+    """Send a fake serial_monitor message via WebSocket (for testing without hardware)."""
+    from app.core.websocket import manager as ws_manager
+    from datetime import datetime, timezone
+    sample_lines = [
+        "1025191933_0_0@22.50:0/01",
+        "1025191933_6_0@45.2:0/01",
+        "1025191933_9_0@3.87:0/01",
+    ]
+    import random
+    raw = random.choice(sample_lines)
+    await ws_manager.broadcast({
+        "type": "serial_monitor",
+        "plugin": "rf24network",
+        "direction": "RX",
+        "raw": raw,
+    })
+    return {"sent": raw}
+
