@@ -72,6 +72,10 @@ WIDGET_TYPES = {
 # Widget IDs that are read-only sensors (no command sent)
 SENSOR_WIDGET_IDS = {"0", "4", "6", "9"}
 
+# Special state values from nodes
+STATE_NODE_BOOT = "-999"  # Node just started, no valid data yet
+PIN_ID_NO_CONFIG = "-99"  # Node booted but hasn't sent its config
+
 # Widget ID -> ThiDom device_type mapping
 WIDGET_DEVICE_TYPE = {
     "0": "sensor",
@@ -397,6 +401,31 @@ class RF24NetworkPlugin(BasePlugin):
                 if parsed:
                     guid = parsed["guid"]
                     wid = parsed["widget_id"]
+                    raw_state = parsed["state"]
+                    raw_pin = parsed["pin_id"]
+
+                    # Node boot announcement: state=-999 means the node just
+                    # started and has no valid data yet. Do NOT persist or
+                    # auto-discover from these messages.
+                    if raw_state == STATE_NODE_BOOT:
+                        node_id = parsed["node_id"]
+                        if raw_pin == PIN_ID_NO_CONFIG:
+                            logger.info("RF24 node %s (GUID %s) booted - awaiting config", node_id, guid)
+                        else:
+                            logger.info("RF24 node %s (GUID %s) announced widget %s pin %s", node_id, guid, wid, raw_pin)
+                        try:
+                            from app.core.websocket import manager as ws_mgr
+                            asyncio.create_task(ws_mgr.broadcast({
+                                "type": "rf24_node_boot",
+                                "plugin": "rf24network",
+                                "node_id": node_id,
+                                "guid": guid,
+                                "widget_id": wid,
+                                "pin_id": raw_pin,
+                            }))
+                        except Exception:
+                            pass
+                        continue
 
                     if wid == "9":
                         # Vcc is a property of the node (GUID), not a separate device.
