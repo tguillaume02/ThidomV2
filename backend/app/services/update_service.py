@@ -230,6 +230,11 @@ class UpdateService:
             status_path = _BACKEND_DIR / "update.status"
             # Clear previous log and set status to 'running'
             # Try direct write first, fall back to sudo if permission denied
+            import pwd, grp
+            try:
+                username = pwd.getpwuid(os.getuid()).pw_name
+            except Exception:
+                username = str(os.getuid())
             for fpath, content in [(log_path, ""), (status_path, "running")]:
                 try:
                     fpath.write_text(content, encoding="utf-8")
@@ -237,7 +242,7 @@ class UpdateService:
                     await asyncio.to_thread(
                         subprocess.run,
                         ["sudo", "-n", "chown",
-                         f"{os.getuid()}:{os.getgid()}", str(fpath)],
+                         f"{username}:{username}", str(fpath)],
                         check=False,
                     )
                     try:
