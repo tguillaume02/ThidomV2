@@ -185,7 +185,7 @@ class AlertApp:
         self._authenticate(); self._fetch_device_name(); threading.Thread(target=self._ws_loop,daemon=True).start()
 
     def _fetch_device_name(self):
-        """Recupere le nom de l appareil surveille via l API."""
+        """Recupere le nom de l appareil surveille via l API et verifie son etat."""
         did = self.config.get("device_id", "")
         if not did: return
         try:
@@ -197,6 +197,17 @@ class AlertApp:
                 self.device_name = data.get("name", f"Appareil #{did}")
                 self.root.after(0, lambda: self.device_info_label.config(text=f"Appareil surveille: {self.device_name}"))
                 self._log(f"Appareil: {self.device_name}")
+                # Verifier l etat actuel: si deja allume, declencher l alerte
+                state = data.get("state", {})
+                if state:
+                    power_val = state.get("power", state.get("on", state.get("active", False)))
+                    is_on = power_val in (True, "on", "ON", 1, "1", "true")
+                    if is_on and not self.alerting:
+                        self.alerting = True
+                        self.alert_device_id = int(did)
+                        self._log(f"ALERTE: {self.device_name} deja actif!")
+                        self.root.after(0, self._show_alert, int(did))
+                        threading.Thread(target=self._play_alert_sound, daemon=True).start()
             else:
                 self.device_name = f"Appareil #{did}"
         except Exception:
@@ -249,7 +260,9 @@ class AlertApp:
         try: target=int(target)
         except: return
         if device_id!=target: return
-        is_on=state.get("on",state.get("power",state.get("active",False)))
+        # Detecter power="on" (string) ou power=True ou on=True
+        power_val = state.get("power", state.get("on", state.get("active", False)))
+        is_on = power_val in (True, "on", "ON", 1, "1", "true")
         if is_on and not self.alerting:
             self.alerting=True; self.alert_device_id=device_id
             self._log(f"ALERTE: Appareil #{device_id} active!"); self.root.after(0,self._show_alert,device_id)
@@ -276,7 +289,7 @@ class AlertApp:
         try:
             headers={}
             if self.token: headers["Authorization"]=f"Bearer {self.token}"
-            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"on":False}},headers=headers,timeout=5,verify=False)
+            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"power":"off","on":False}},headers=headers,timeout=5,verify=False)
             if r.ok: self._log(f"Appareil #{device_id} eteint.")
             else: self._log(f"Erreur extinction: {r.status_code}")
         except Exception as e: self._log(f"Erreur: {e}")
