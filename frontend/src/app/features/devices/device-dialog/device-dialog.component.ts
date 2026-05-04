@@ -43,6 +43,7 @@ export class DeviceDialogComponent implements OnInit {
   historize = false;
   notifyOnStateChange = false;
   hysteresis: number | null = null;
+  autoOffDelay: number | null = null;
   refreshInterval: number | null = null;
 
   // Refresh interval UI state
@@ -119,6 +120,7 @@ export class DeviceDialogComponent implements OnInit {
       this.historize = data.device.historize;
       this.notifyOnStateChange = data.device.notify_on_state_change || false;
       this.hysteresis = data.device.hysteresis ?? null;
+      this.autoOffDelay = data.device.auto_off_delay ?? null;
       this.refreshInterval = this.config.refresh_interval ?? null;
       this._initRefreshFromSeconds(this.refreshInterval);
     }
@@ -228,6 +230,7 @@ export class DeviceDialogComponent implements OnInit {
       historize: this.historize,
       notify_on_state_change: this.notifyOnStateChange,
       hysteresis: this.deviceType === 'thermostat' ? this.hysteresis : null,
+      auto_off_delay: this.autoOffDelay || null,
     });
   }
 

@@ -58,6 +58,33 @@ async def _notify_state_change(device_name: str, state: dict):
     await send_telegram_message(f"🏠 ThiDom — {device_name}\nChangement d'etat: {changes}")
 
 
+async def _auto_off_device(device_id: int, delay_seconds: int):
+    """Wait for delay then turn off the device (background task)."""
+    import asyncio
+    from app.core.database import async_session
+    await asyncio.sleep(delay_seconds)
+    async with async_session() as db:
+        result = await db.execute(select(Device).where(Device.id == device_id))
+        device = result.scalar_one_or_none()
+        if not device:
+            return
+        state = device.state or {}
+        is_on = state.get("on", state.get("power", state.get("active", False)))
+        if not is_on:
+            return
+        # Turn off
+        off_state = {**(device.state or {}), "on": False, "power": False}
+        plugin_result = await db.execute(select(Plugin).where(Plugin.id == device.plugin_id))
+        plugin_model = plugin_result.scalar_one_or_none()
+        if plugin_model:
+            plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
+            if plugin_instance:
+                off_state = await plugin_instance.set_state(device.config or {}, {"on": False})
+        device.state = off_state
+        await db.commit()
+        await manager.broadcast_device_state(device.id, device.state)
+
+
 def _evaluate_thermostat_hysteresis(device: Device, current_temp: float | None = None) -> dict | None:
     """
     Evaluate thermostat hysteresis and return state changes if needed.
@@ -277,6 +304,12 @@ async def update_device_state(
     # Telegram notification
     if device.notify_on_state_change:
         background_tasks.add_task(_notify_state_change, device.name, state_data.state)
+
+    # Auto-off timer: schedule turn-off after configured delay
+    if device.auto_off_delay and device.auto_off_delay > 0:
+        is_on = state_data.state.get("on", state_data.state.get("power", state_data.state.get("active")))
+        if is_on:
+            background_tasks.add_task(_auto_off_device, device.id, device.auto_off_delay)
 
     return device
 

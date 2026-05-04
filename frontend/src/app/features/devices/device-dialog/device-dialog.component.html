@@ -165,6 +165,18 @@
     <mat-slide-toggle [(ngModel)]="historize">Activer l'historisation</mat-slide-toggle>
     <mat-slide-toggle [(ngModel)]="notifyOnStateChange">Notification Telegram au changement d'etat</mat-slide-toggle>
   </div>
+
+  <!-- Auto-off delay -->
+  @if (deviceType === 'light' || deviceType === 'switch') {
+    <div class="config-section">
+      <h3>Extinction automatique</h3>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Délai avant extinction (secondes)</mat-label>
+        <input matInput type="number" [(ngModel)]="autoOffDelay" min="0" placeholder="Ex: 60">
+        <mat-hint>L'appareil s'éteindra automatiquement après ce délai. Laisser vide ou 0 pour désactiver.</mat-hint>
+      </mat-form-field>
+    </div>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

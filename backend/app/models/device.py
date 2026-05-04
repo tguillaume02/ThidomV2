@@ -19,6 +19,7 @@ class Device(Base):
     historize = Column(Boolean, default=False)  # Enable history tracking
     notify_on_state_change = Column(Boolean, default=False)  # Send Telegram notification on state change
     hysteresis = Column(Float, nullable=True, default=None)  # Thermostat hysteresis in °C
+    auto_off_delay = Column(Integer, nullable=True, default=None)  # Auto turn-off delay in seconds
     order = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

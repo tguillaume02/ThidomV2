@@ -35,6 +35,33 @@ from app.services.scenario_engine import scenario_engine
 
 logger = logging.getLogger(__name__)
 
+
+async def _schedule_auto_off(device_id: int, delay_seconds: int):
+    """Wait then turn off a device (auto-off timer)."""
+    import asyncio
+    from app.plugins.registry import PluginRegistry
+    await asyncio.sleep(delay_seconds)
+    async with async_session() as db:
+        result = await db.execute(select(Device).where(Device.id == device_id))
+        device = result.scalar_one_or_none()
+        if not device:
+            return
+        state = device.state or {}
+        is_on = state.get("on", state.get("power", state.get("active", False)))
+        if not is_on:
+            return
+        off_state = {**(device.state or {}), "on": False, "power": False}
+        plugin_result = await db.execute(select(Plugin).where(Plugin.id == device.plugin_id))
+        plugin_model = plugin_result.scalar_one_or_none()
+        if plugin_model:
+            plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
+            if plugin_instance:
+                off_state = await plugin_instance.set_state(device.config or {}, {"on": False})
+        device.state = off_state
+        await db.commit()
+        await manager.broadcast_device_state(device.id, device.state)
+
+
 # Lazy-loaded thermostat helpers (avoid circular import at module level)
 _thermostat_helpers_loaded = False
 _evaluate_thermostat_hysteresis = None
@@ -174,6 +201,13 @@ async def push_state_update(
                         )
                     except Exception:
                         logger.exception("Telegram notification failed for device %d", device.id)
+
+                # Auto-off timer
+                if device.auto_off_delay and device.auto_off_delay > 0:
+                    is_on = new_state.get("on", new_state.get("power", new_state.get("active")))
+                    if is_on:
+                        import asyncio
+                        asyncio.ensure_future(_schedule_auto_off(device.id, device.auto_off_delay))
 
     except Exception:
         logger.exception("push_state_update failed for plugin '%s'", plugin_slug)

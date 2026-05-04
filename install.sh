@@ -108,9 +108,19 @@ log "Permissions corrigees ($SVC_USER)."
 # ---- Apache config ----
 if [ "$MODE" = "no-docker" ] && command -v a2enconf >/dev/null 2>&1; then
   APACHE_DEST="/etc/apache2/conf-available/ThiDom.conf"
-  if [ ! -f "$APACHE_DEST" ]; then
-    log "Creation config Apache..."
+  APACHE_SRC="$ROOT_DIR/frontend/apache.conf"
+  if [ -f "$APACHE_SRC" ]; then
+    log "Mise a jour config Apache depuis apache.conf..."
+    sudo cp "$APACHE_SRC" "$APACHE_DEST"
+  else
+    log "Creation config Apache (inline)..."
     cat > "$APACHE_DEST" <<'APACHECONF'
+# =============================================================================
+# ThiDomV2 — Configuration Apache
+# Modules requis :
+#   sudo a2enmod rewrite proxy proxy_http proxy_wstunnel headers ssl
+# =============================================================================
+
 Alias /ThiDom /var/www/ThiDom/browser
 
 <Directory /var/www/ThiDom/browser>
@@ -125,17 +135,19 @@ Alias /ThiDom /var/www/ThiDom/browser
     RewriteRule . /ThiDom/index.html [L]
 </Directory>
 
+# WebSocket proxy (doit etre AVANT le ProxyPass API)
 RewriteEngine On
-RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteCond %{HTTP:Upgrade} =websocket [NC]
 RewriteCond %{HTTP:Connection} upgrade [NC]
 RewriteRule ^/ThiDom/api/ws/(.*) ws://localhost:8000/api/ws/$1 [P,L]
 
+# API reverse proxy
 ProxyPreserveHost On
 ProxyPass        /ThiDom/api/ http://localhost:8000/api/
 ProxyPassReverse /ThiDom/api/ http://localhost:8000/api/
 APACHECONF
-    log "Apache config creee."
-  else log "Apache config existe deja."; fi
+  fi
+  log "Apache config installee."
   sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl headers >/dev/null 2>&1 || true
   sudo a2enconf ThiDom >/dev/null 2>&1 || true
   # Injecter l'include ThiDom dans tous les vhosts SSL qui ne l'ont pas encore

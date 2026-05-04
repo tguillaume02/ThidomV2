@@ -52,6 +52,7 @@ export interface Device {
   historize: boolean;
   notify_on_state_change: boolean;
   hysteresis: number | null;
+  auto_off_delay: number | null;
   order: number;
   created_at: string;
   updated_at: string;

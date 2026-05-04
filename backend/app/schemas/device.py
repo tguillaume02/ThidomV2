@@ -15,6 +15,7 @@ class DeviceBase(BaseModel):
     historize: Optional[bool] = False
     notify_on_state_change: Optional[bool] = False
     hysteresis: Optional[float] = None
+    auto_off_delay: Optional[int] = None
     order: Optional[int] = 0
 
 
@@ -35,6 +36,7 @@ class DeviceUpdate(BaseModel):
     historize: Optional[bool] = None
     notify_on_state_change: Optional[bool] = None
     hysteresis: Optional[float] = None
+    auto_off_delay: Optional[int] = None
     order: Optional[int] = None
 
 

@@ -117,6 +117,26 @@ log "Deploiement du frontend vers $WEB_DIR..."
 sudo mkdir -p "$WEB_DIR"
 sudo rsync -a --delete "$SRC/frontend/" "$WEB_DIR/"
 
+# ---------- Mise a jour config Apache ----------
+if command -v a2enconf >/dev/null 2>&1; then
+  APACHE_SRC="$SRC/frontend/apache.conf"
+  APACHE_DEST="/etc/apache2/conf-available/ThiDom.conf"
+  if [ -f "$APACHE_SRC" ]; then
+    log "Mise a jour config Apache..."
+    sudo cp "$APACHE_SRC" "$APACHE_DEST"
+    sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl headers >/dev/null 2>&1 || true
+    sudo a2enconf ThiDom >/dev/null 2>&1 || true
+    # Injecter l'include dans les vhosts SSL si absent
+    for ssl_conf in /etc/apache2/sites-enabled/*ssl*.conf /etc/apache2/sites-enabled/*le-ssl*.conf; do
+      [ -f "$ssl_conf" ] || continue
+      if ! grep -q 'Include conf-available/ThiDom.conf' "$ssl_conf"; then
+        sudo sed -i '/<\/VirtualHost>/i Include conf-available/ThiDom.conf' "$ssl_conf"
+        log "Include ThiDom ajoute dans $ssl_conf"
+      fi
+    done
+  fi
+fi
+
 # ---------- Deploiement backend ----------
 log "Deploiement du backend vers $INSTALL_DIR..."
 sudo mkdir -p "$INSTALL_DIR"
