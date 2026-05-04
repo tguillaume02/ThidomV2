@@ -62,15 +62,22 @@ class UpdateService:
 
     @property
     def auto_update_enabled(self) -> bool:
-        return _AUTO_UPDATE_FILE.exists()
+        try:
+            return _AUTO_UPDATE_FILE.exists()
+        except Exception:
+            return False
 
     def set_auto_update(self, enabled: bool) -> None:
-        if enabled:
-            _AUTO_UPDATE_FILE.write_text("1", encoding="utf-8")
-            logger.info("Auto-update enabled")
-        else:
-            _AUTO_UPDATE_FILE.unlink(missing_ok=True)
-            logger.info("Auto-update disabled")
+        try:
+            if enabled:
+                _AUTO_UPDATE_FILE.write_text("1", encoding="utf-8")
+                logger.info("Auto-update enabled")
+            else:
+                _AUTO_UPDATE_FILE.unlink(missing_ok=True)
+                logger.info("Auto-update disabled")
+        except PermissionError:
+            logger.warning("Cannot write %s (permission denied)", _AUTO_UPDATE_FILE)
+            raise
 
     # ------------------------------------------------------------------
     # Local version

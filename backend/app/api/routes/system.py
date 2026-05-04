@@ -69,7 +69,10 @@ async def update_status():
 async def set_auto_update(body: dict, _: User = Depends(require_admin)):
     """Enable or disable automatic updates. Admin only."""
     enabled = body.get("enabled", False)
-    update_service.set_auto_update(bool(enabled))
+    try:
+        update_service.set_auto_update(bool(enabled))
+    except PermissionError:
+        raise HTTPException(status_code=500, detail="Permission refusee pour ecrire le fichier .auto_update")
     return {"auto_update": update_service.auto_update_enabled}
 
 
