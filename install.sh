@@ -138,6 +138,14 @@ APACHECONF
   else log "Apache config existe deja."; fi
   sudo a2enmod rewrite proxy proxy_http proxy_wstunnel ssl headers >/dev/null 2>&1 || true
   sudo a2enconf ThiDom >/dev/null 2>&1 || true
+  # Inject ThiDom config into all SSL vhosts that don't already include it
+  for ssl_conf in /etc/apache2/sites-available/*ssl*.conf /etc/apache2/sites-enabled/*ssl*.conf; do
+    [ -f "$ssl_conf" ] || continue
+    if ! grep -q "ThiDom.conf" "$ssl_conf" 2>/dev/null; then
+      sudo sed -i '/<\/VirtualHost>/i Include conf-available/ThiDom.conf' "$ssl_conf"
+      log "ThiDom.conf injecte dans $ssl_conf"
+    fi
+  done
   sudo apachectl configtest 2>&1 && { sudo systemctl reload apache2; log "Apache recharge."; } || warn "Erreur config Apache."
 fi
 # ---- systemd service ----
