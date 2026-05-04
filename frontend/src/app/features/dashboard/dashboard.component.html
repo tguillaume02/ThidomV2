@@ -103,6 +103,12 @@
                 <app-cover-widget [device]="device" (positionChange)="onCoverPositionChange(device, $event)"></app-cover-widget>
               }
               <div class="device-actions">
+                @if (device.state?.last_seen) {
+                  <span class="last-seen" matTooltip="Derniere donnee recue">
+                    <mat-icon>schedule</mat-icon>
+                    {{ formatLastSeen(device.state.last_seen) }}
+                  </span>
+                }
                 @if (isToggleable(device)) {
                   <button class="toggle-btn" [class.on]="isDeviceOn(device)" [class.toggling]="togglingDeviceIds.has(device.id)" [matTooltip]="getToggleTooltip(device)" [disabled]="togglingDeviceIds.has(device.id)" (click)="toggleDevice(device)">
                     <mat-icon>{{ getToggleIcon(device) }}</mat-icon>

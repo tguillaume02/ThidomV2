@@ -616,8 +616,25 @@
   // Actions
   .device-actions {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     margin-top: auto;
+
+    .last-seen {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      color: var(--thidom-text-secondary);
+      margin-right: auto;
+      opacity: 0.7;
+
+      mat-icon {
+        font-size: 13px;
+        width: 13px;
+        height: 13px;
+      }
+    }
 
     .toggle-btn {
       width: 40px;
