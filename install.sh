@@ -194,6 +194,10 @@ UNIT
 # ThiDom - allow the backend service user to run update & service commands
 $SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS
 $SVC_USER ALL=(ALL) NOPASSWD: $SCRIPT_ABS *
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/systemd-run --scope --unit=thidom-update $SCRIPT_ABS
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/systemd-run --scope --unit=thidom-update $SCRIPT_ABS *
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/nohup $SCRIPT_ABS
+$SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/nohup $SCRIPT_ABS *
 $SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart $SVC_NAME
 $SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload ${APACHE_SVC:-apache2}
 $SVC_USER ALL=(ALL) NOPASSWD: /usr/bin/tee $SVC_INSTALL_DIR/backend/update.log

@@ -260,12 +260,22 @@ class UpdateService:
             if script.suffix == ".ps1":
                 cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)]
             else:
-                # Launch the update script directly via sudo with output
-                # redirected to the log file. nohup + start_new_session
-                # ensure the script survives the backend restart it triggers.
-                cmd = [
-                    "sudo", "-n", str(script),
-                ]
+                # Launch the update script in a SEPARATE systemd scope so it
+                # survives the backend service restart it triggers.
+                # systemd-run --scope creates a transient unit outside the
+                # current service's cgroup, preventing it from being killed
+                # when the backend service stops.
+                if os.path.exists("/usr/bin/systemd-run"):
+                    cmd = [
+                        "sudo", "-n", "systemd-run", "--scope",
+                        "--unit=thidom-update",
+                        str(script),
+                    ]
+                else:
+                    # Fallback: nohup + setsid to detach from parent
+                    cmd = [
+                        "sudo", "-n", "nohup", str(script),
+                    ]
 
             log_fd = open(str(log_path), "a")
             await asyncio.to_thread(
