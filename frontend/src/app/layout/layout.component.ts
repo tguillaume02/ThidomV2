@@ -50,6 +50,7 @@ export class LayoutComponent implements OnInit {
     { label: 'Historique', icon: 'timeline', route: '/history' },
     { label: 'Logs', icon: 'receipt_long', route: '/logs' },
     { label: 'Utilisateurs', icon: 'people', route: '/users' },
+    { label: 'Moniteur serie', icon: 'terminal', route: '/serial-monitor' },
     { label: 'Systeme', icon: 'settings', route: '/system' },
   ];
 

@@ -52,6 +52,10 @@ export const routes: Routes = [
         loadComponent: () => import('@features/system/system.component').then(m => m.SystemComponent),
       },
       {
+        path: 'serial-monitor',
+        loadComponent: () => import('@features/serial-monitor/serial-monitor.component').then(m => m.SerialMonitorComponent),
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full',

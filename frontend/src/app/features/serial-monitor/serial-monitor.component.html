@@ -1,0 +1,53 @@
+<div class="serial-monitor-page">
+  <div class="page-header">
+    <h2>
+      <mat-icon>terminal</mat-icon>
+      Moniteur serie
+    </h2>
+    <div class="header-actions">
+      <mat-chip-set>
+        <mat-chip [highlighted]="showRx" (click)="showRx = !showRx" color="primary">
+          RX {{ rxCount }}
+        </mat-chip>
+        <mat-chip [highlighted]="showTx" (click)="showTx = !showTx" color="accent">
+          TX {{ txCount }}
+        </mat-chip>
+      </mat-chip-set>
+      <mat-slide-toggle [(ngModel)]="autoScroll" color="primary">
+        Auto-scroll
+      </mat-slide-toggle>
+      <button mat-icon-button matTooltip="{{ paused ? 'Reprendre' : 'Pause' }}" (click)="togglePause()">
+        <mat-icon>{{ paused ? 'play_arrow' : 'pause' }}</mat-icon>
+      </button>
+      <button mat-icon-button matTooltip="Effacer" (click)="clear()">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <mat-card class="monitor-card">
+    <div class="log-container" #logContainer>
+      @for (line of filteredLines; track $index) {
+        <div class="log-line" [class.rx]="line.direction === 'RX'" [class.tx]="line.direction === 'TX'">
+          <span class="time">{{ line.time }}</span>
+          <span class="direction" [class.dir-rx]="line.direction === 'RX'" [class.dir-tx]="line.direction === 'TX'">
+            {{ line.direction }}
+          </span>
+          <span class="raw">{{ line.raw }}</span>
+        </div>
+      }
+      @if (filteredLines.length === 0) {
+        <div class="empty-state">
+          @if (paused) {
+            <mat-icon>pause_circle</mat-icon>
+            <p>Moniteur en pause</p>
+          } @else {
+            <mat-icon>sensors</mat-icon>
+            <p>En attente de donnees serie...</p>
+            <p class="hint">Assurez-vous qu'un plugin (RF24Network, Zigbee...) est connecte a un port USB.</p>
+          }
+        </div>
+      }
+    </div>
+  </mat-card>
+</div>

@@ -381,6 +381,18 @@ class RF24NetworkPlugin(BasePlugin):
                 if not raw:
                     continue
 
+                # Broadcast raw line for live serial monitor
+                try:
+                    from app.core.websocket import manager as ws_manager
+                    asyncio.create_task(ws_manager.broadcast({
+                        "type": "serial_monitor",
+                        "plugin": "rf24network",
+                        "direction": "RX",
+                        "raw": raw,
+                    }))
+                except Exception:
+                    pass
+
                 parsed = _parse_message(raw)
                 if parsed:
                     guid = parsed["guid"]
@@ -444,6 +456,18 @@ class RF24NetworkPlugin(BasePlugin):
         self._serial_writer.write(cmd.encode("utf-8"))
         await self._serial_writer.drain()
         logger.debug("RF24 sent: %s", cmd.strip())
+
+        # Broadcast TX for live serial monitor
+        try:
+            from app.core.websocket import manager as ws_manager
+            asyncio.create_task(ws_manager.broadcast({
+                "type": "serial_monitor",
+                "plugin": "rf24network",
+                "direction": "TX",
+                "raw": cmd.strip(),
+            }))
+        except Exception:
+            pass
 
     @staticmethod
     def _cache_key(node_id, guid, widget_id, pin_id):

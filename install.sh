@@ -89,6 +89,11 @@ chmod 600 "$ENV_FILE"
 SVC_USER="${SVC_USER:-www-data}"; id "$SVC_USER" >/dev/null 2>&1 || SVC_USER="root"
 SVC_INSTALL_DIR="${INSTALL_DIR:-/opt/thidom}"; SVC_NAME="${SERVICE_NAME:-thidom-backend}"; WEB_DIR="${WEB_DIR:-/var/www/ThiDom/browser}"
 
+# Acces aux ports serie (USB/Zigbee/RF24/Z-Wave...)
+if getent group dialout >/dev/null 2>&1; then
+  sudo usermod -aG dialout "$SVC_USER" 2>/dev/null && log "$SVC_USER ajoute au groupe dialout (ports serie)."
+fi
+
 log "Deploiement (mode=$MODE)..."
 if [ "$MODE" = "docker" ]; then sudo -E bash "$ROOT_DIR/update.sh"; else chmod +x "$ROOT_DIR/update-no-docker.sh"; sudo -E bash "$ROOT_DIR/update-no-docker.sh"; fi
 
