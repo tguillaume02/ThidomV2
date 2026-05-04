@@ -167,7 +167,7 @@
   </div>
 
   <!-- Auto-off delay -->
-  @if (deviceType === 'light' || deviceType === 'switch') {
+  @if (deviceType !== 'sensor' && deviceType !== 'variable') {
     <div class="config-section">
       <h3>Extinction automatique</h3>
       <mat-form-field appearance="outline" class="full-width">
