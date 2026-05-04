@@ -185,7 +185,7 @@ class AlertApp:
         self._authenticate(); self._fetch_device_name(); threading.Thread(target=self._ws_loop,daemon=True).start()
 
     def _fetch_device_name(self):
-        """Recupere le nom de l appareil surveille via l API et verifie son etat."""
+        """Recupere le nom de l appareil surveille via l API."""
         did = self.config.get("device_id", "")
         if not did: return
         try:
@@ -197,17 +197,6 @@ class AlertApp:
                 self.device_name = data.get("name", f"Appareil #{did}")
                 self.root.after(0, lambda: self.device_info_label.config(text=f"Appareil surveille: {self.device_name}"))
                 self._log(f"Appareil: {self.device_name}")
-                # Verifier l etat actuel: si deja allume, declencher l alerte
-                state = data.get("state", {})
-                if state:
-                    power_val = state.get("power", state.get("on", state.get("active", False)))
-                    is_on = power_val in (True, "on", "ON", 1, "1", "true")
-                    if is_on and not self.alerting:
-                        self.alerting = True
-                        self.alert_device_id = int(did)
-                        self._log(f"ALERTE: {self.device_name} deja actif!")
-                        self.root.after(0, self._show_alert, int(did))
-                        threading.Thread(target=self._play_alert_sound, daemon=True).start()
             else:
                 self.device_name = f"Appareil #{did}"
         except Exception:
