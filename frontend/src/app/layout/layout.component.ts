@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '@core/services/auth.service';
 import { WebSocketService } from '@core/services/websocket.service';
 import { UpdateBannerComponent } from './update-banner/update-banner.component';
@@ -31,6 +32,7 @@ interface NavItem {
     MatButtonModule,
     MatTooltipModule,
     MatBadgeModule,
+    MatSnackBarModule,
     UpdateBannerComponent,
   ],
   templateUrl: './layout.component.html',
@@ -57,13 +59,25 @@ export class LayoutComponent implements OnInit {
   constructor(
     public authService: AuthService,
     private wsService: WebSocketService,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar,
   ) {}
 
   ngOnInit(): void {
     this.wsService.connect();
     this.wsService.connected$.subscribe(connected => {
       this.wsConnected = connected;
+    });
+    this.wsService.messages$.subscribe(msg => {
+      if (msg.type === 'device_discovered') {
+        this.snackBar.open(
+          `Nouvel appareil decouvert : ${msg['device_name']}`,
+          'Voir',
+          { duration: 8000 },
+        ).onAction().subscribe(() => {
+          this.router.navigate(['/devices']);
+        });
+      }
     });
   }
 

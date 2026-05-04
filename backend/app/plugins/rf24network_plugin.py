@@ -585,7 +585,10 @@ class RF24NetworkPlugin(BasePlugin):
         return await self.get_state(device_config)
 
     async def _persist_device_state(self, parsed: dict, state: dict):
-        """Persist a parsed RF24 device state update to DB via the shared bridge."""
+        """Persist a parsed RF24 device state update to DB via the shared bridge.
+
+        If no existing device matches, auto-create one in the 'Decouverts' room.
+        """
         from app.services.plugin_state_bridge import push_state_update
         guid = str(parsed.get("guid", ""))
         wid = str(parsed.get("widget_id", ""))
@@ -604,7 +607,11 @@ class RF24NetworkPlugin(BasePlugin):
                 return False
             return True
 
-        await push_state_update("rf24network", state, match_fn)
+        count = await push_state_update("rf24network", state, match_fn)
+
+        # Auto-discover: create device if no existing one matched
+        if count == 0:
+            await self._auto_discover_device(parsed, state)
 
     async def _persist_vcc(self, guid: str, vcc_state: dict):
         """Persist Vcc voltage into all DB devices sharing the same GUID."""
@@ -614,3 +621,109 @@ class RF24NetworkPlugin(BasePlugin):
             vcc_state,
             lambda cfg: str(cfg.get("device_guid", "")) == guid,
         )
+
+    # ------------------------------------------------------------------
+    # Auto-discovery
+    # ------------------------------------------------------------------
+
+    async def _auto_discover_device(self, parsed: dict, state: dict):
+        """Auto-create a device in the 'Decouverts' room when an unknown
+        RF24 node sends data for the first time."""
+        from sqlalchemy import select
+        from app.core.database import async_session
+        from app.core.websocket import manager as ws_manager
+        from app.models.device import Device
+        from app.models.plugin import Plugin
+        from app.models.room import Room
+
+        guid = str(parsed.get("guid", ""))
+        wid = str(parsed.get("widget_id", ""))
+        pin_id = str(parsed.get("pin_id", ""))
+        node_id = str(parsed.get("node_id", ""))
+
+        widget_label = WIDGET_TYPES.get(wid, "Inconnu")
+        device_type = WIDGET_DEVICE_TYPE.get(wid, "sensor")
+
+        try:
+            async with async_session() as db:
+                # Find or create the "Decouverts" room
+                result = await db.execute(
+                    select(Room).where(Room.name == "Decouverts")
+                )
+                room = result.scalar_one_or_none()
+                if not room:
+                    room = Room(name="Decouverts", icon="search", color="#FF9800", order=999)
+                    db.add(room)
+                    await db.flush()
+
+                # Find the RF24 plugin ID
+                result = await db.execute(
+                    select(Plugin.id).where(Plugin.slug == "rf24network")
+                )
+                plugin_row = result.first()
+                if not plugin_row:
+                    logger.warning("RF24 auto-discover: plugin not found in DB")
+                    return
+                plugin_id = plugin_row[0]
+
+                # Build device config
+                config = {
+                    "node_id": node_id,
+                    "device_guid": guid,
+                    "widget_id": wid,
+                    "pin_id": pin_id,
+                }
+
+                # Check if device already exists (race condition guard)
+                result = await db.execute(
+                    select(Device).where(
+                        Device.plugin_id == plugin_id,
+                        Device.config["device_guid"].as_string() == guid,
+                        Device.config["widget_id"].as_string() == wid,
+                        Device.config["pin_id"].as_string() == pin_id,
+                    )
+                )
+                if result.scalar_one_or_none():
+                    return  # Already created by concurrent task
+
+                # Determine icon
+                icon_map = {
+                    "0": "thermostat", "1": "power", "2": "lightbulb",
+                    "3": "palette", "4": "sensors", "5": "thermostat",
+                    "6": "water_drop", "7": "text_fields", "8": "touch_app",
+                }
+                icon = icon_map.get(wid, "devices")
+
+                device = Device(
+                    name="{} (Noeud {} - {})".format(widget_label, node_id, guid[-4:]),
+                    device_type=device_type,
+                    icon=icon,
+                    room_id=room.id,
+                    plugin_id=plugin_id,
+                    config=config,
+                    state=state,
+                    is_visible=True,
+                )
+                db.add(device)
+                await db.commit()
+                await db.refresh(device)
+
+                logger.info(
+                    "RF24 auto-discovered device: %s (id=%d, guid=%s, widget=%s, node=%s)",
+                    device.name, device.id, guid, wid, node_id,
+                )
+
+                # Notify frontend
+                await ws_manager.broadcast({
+                    "type": "device_discovered",
+                    "plugin": "rf24network",
+                    "device_id": device.id,
+                    "device_name": device.name,
+                    "device_type": device_type,
+                    "node_id": node_id,
+                    "guid": guid,
+                    "widget": widget_label,
+                })
+
+        except Exception:
+            logger.exception("RF24 auto-discover failed for GUID %s", guid)
