@@ -210,8 +210,20 @@ class UpdateService:
             log_path = _BACKEND_DIR / "update.log"
             status_path = _BACKEND_DIR / "update.status"
             # Clear previous log and set status to 'running'
-            log_path.write_text("", encoding="utf-8")
-            status_path.write_text("running", encoding="utf-8")
+            try:
+                log_path.write_text("", encoding="utf-8")
+                status_path.write_text("running", encoding="utf-8")
+            except PermissionError:
+                # Files may be owned by root after a previous update;
+                # recreate them via sudo
+                await asyncio.to_thread(
+                    subprocess.run,
+                    ["sudo", "-n", "bash", "-c",
+                     f"echo -n '' > {shlex.quote(str(log_path))} && "
+                     f"echo -n 'running' > {shlex.quote(str(status_path))} && "
+                     f"chown $(id -un):$(id -gn) {shlex.quote(str(log_path))} {shlex.quote(str(status_path))}"],
+                    check=False,
+                )
 
             if script.suffix == ".ps1":
                 cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)]
