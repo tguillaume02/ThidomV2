@@ -26,7 +26,7 @@ export class UserService {
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<User[]> {
-    return this.http.get<User[]>(this.apiUrl);
+    return this.http.get<User[]>(`${this.apiUrl}/`);
   }
 
   getById(id: number): Observable<User> {
@@ -34,7 +34,7 @@ export class UserService {
   }
 
   create(data: UserCreateRequest): Observable<User> {
-    return this.http.post<User>(this.apiUrl, data);
+    return this.http.post<User>(`${this.apiUrl}/`, data);
   }
 
   update(id: number, data: UserUpdateRequest): Observable<User> {
