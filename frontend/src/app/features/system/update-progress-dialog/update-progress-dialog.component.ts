@@ -28,7 +28,9 @@ interface UpdateLog {
 export class UpdateProgressDialogComponent implements OnInit, OnDestroy {
   status: 'idle' | 'running' | 'done' | 'failed' = 'running';
   logLines: string[] = [];
+  backendRestarting = false;
   private pollTimer: any;
+  private errorCount = 0;
 
   @ViewChild('logContainer') logContainer?: ElementRef<HTMLDivElement>;
 
@@ -75,6 +77,8 @@ export class UpdateProgressDialogComponent implements OnInit, OnDestroy {
   private poll(): void {
     this.http.get<UpdateLog>(`${environment.apiUrl}/system/update-log`).subscribe({
       next: (res) => {
+        this.errorCount = 0;
+        this.backendRestarting = false;
         this.status = res.status as any;
         this.logLines = res.log;
         this.scrollToBottom();
@@ -85,7 +89,11 @@ export class UpdateProgressDialogComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        // Backend may be restarting during update — keep polling
+        // Backend is restarting during update — keep polling
+        this.errorCount++;
+        if (this.errorCount >= 2) {
+          this.backendRestarting = true;
+        }
       },
     });
   }

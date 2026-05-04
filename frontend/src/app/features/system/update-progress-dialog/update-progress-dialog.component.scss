@@ -55,6 +55,15 @@ h2 {
     background: #ffebee;
     color: #c62828;
   }
+
+  &.restarting {
+    background: #e3f2fd;
+    color: #1565c0;
+
+    mat-icon {
+      animation: spin 1.5s linear infinite;
+    }
+  }
 }
 
 .running-hint {
