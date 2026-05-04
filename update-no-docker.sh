@@ -125,6 +125,19 @@ sudo mkdir -p "$INSTALL_DIR"
 PRESERVE_ARGS=(--exclude 'venv' --exclude '*.db' --exclude '.env')
 sudo rsync -a --delete "${PRESERVE_ARGS[@]}" "$SRC/backend/" "$INSTALL_DIR/backend/"
 
+# ---------- Mise a jour du script lui-meme ----------
+# Le script en cours d'execution est l'ancienne version (en memoire).
+# On copie la nouvelle version pour que le prochain appel soit a jour.
+if [ -f "$SRC/update-no-docker.sh" ]; then
+  sudo cp "$SRC/update-no-docker.sh" "$INSTALL_DIR/update-no-docker.sh"
+  sudo chmod +x "$INSTALL_DIR/update-no-docker.sh"
+  log "Script update-no-docker.sh mis a jour."
+fi
+if [ -f "$SRC/install.sh" ]; then
+  sudo cp "$SRC/install.sh" "$INSTALL_DIR/install.sh"
+  sudo chmod +x "$INSTALL_DIR/install.sh"
+fi
+
 # venv
 if [ ! -d "$INSTALL_DIR/backend/venv" ]; then
   log "Creation du venv Python..."

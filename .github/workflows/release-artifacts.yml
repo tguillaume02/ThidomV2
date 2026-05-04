@@ -76,6 +76,9 @@ jobs:
                    --exclude '.env' \
                    backend release/thidom/
           cp backend/requirements.txt release/thidom/requirements.txt
+          # Include deployment scripts so the update can self-update
+          cp update-no-docker.sh release/thidom/update-no-docker.sh
+          cp install.sh          release/thidom/install.sh 2>/dev/null || true
           # Manifest avec metadata du build
           cat > release/thidom/MANIFEST.txt <<EOF
           ThiDomV2 release
