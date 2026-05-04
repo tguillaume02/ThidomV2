@@ -633,13 +633,41 @@ class RF24NetworkPlugin(BasePlugin):
                 return False
             if str(cfg.get("pin_id", "")) != pin_id:
                 return False
-            cfg_node = cfg.get("node_id")
-            if cfg_node and str(cfg_node) != node_id:
-                return False
+            # node_id is NOT used for matching: RF24Network nodes
+            # choose the shortest route dynamically, so their address
+            # can change after every reboot.
             return True
 
         count = await push_state_update("rf24network", state, match_fn)
         logger.debug("RF24 push_state_update: %d matches for guid=%s wid=%s pin=%s node=%s", count, guid, wid, pin_id, node_id)
+
+        # Update node_id in device config if it changed (dynamic routing)
+        if count > 0 and node_id:
+            try:
+                async with (await self._get_session()) as db:
+                    from sqlalchemy import select
+                    from app.models.device import Device
+                    from app.models.plugin import Plugin
+                    result = await db.execute(
+                        select(Plugin.id).where(Plugin.slug == "rf24network")
+                    )
+                    plugin_ids = [r[0] for r in result.all()]
+                    if plugin_ids:
+                        result = await db.execute(
+                            select(Device).where(Device.plugin_id.in_(plugin_ids))
+                        )
+                        for device in result.scalars().all():
+                            cfg = device.config or {}
+                            if (str(cfg.get("device_guid", "")) == guid
+                                    and str(cfg.get("widget_id", "")) == wid
+                                    and str(cfg.get("pin_id", "")) == pin_id
+                                    and str(cfg.get("node_id", "")) != node_id):
+                                device.config = {**cfg, "node_id": node_id}
+                                logger.info("RF24 updated node_id %s -> %s for device %d",
+                                            cfg.get("node_id"), node_id, device.id)
+                        await db.commit()
+            except Exception:
+                logger.debug("RF24 node_id update skipped")
 
         # Auto-discover: create device if no existing one matched
         if count == 0:
@@ -656,6 +684,11 @@ class RF24NetworkPlugin(BasePlugin):
             vcc_state,
             lambda cfg: str(cfg.get("device_guid", "")) == guid,
         )
+
+    @staticmethod
+    async def _get_session():
+        from app.core.database import async_session
+        return async_session()
 
     # ------------------------------------------------------------------
     # Auto-discovery
