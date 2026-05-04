@@ -89,6 +89,12 @@
         </div>
 
         <div class="device-footer">
+          @if (device.state?.last_seen) {
+            <span class="last-seen" matTooltip="Derniere donnee recue">
+              <mat-icon>schedule</mat-icon>
+              {{ formatLastSeen(device.state.last_seen) }}
+            </span>
+          }
           @if (device.historize) {
             <mat-icon class="badge-icon" matTooltip="Historisation active">timeline</mat-icon>
           }

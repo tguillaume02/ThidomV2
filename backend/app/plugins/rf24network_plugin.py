@@ -658,6 +658,7 @@ class RF24NetworkPlugin(BasePlugin):
     async def _auto_discover_device(self, parsed: dict, state: dict):
         """Auto-create a device in the 'Decouverts' room when an unknown
         RF24 node sends data for the first time."""
+        from datetime import datetime, timezone
         from sqlalchemy import select, func, cast, String
         from app.core.database import async_session
         from app.core.websocket import manager as ws_manager
@@ -731,7 +732,7 @@ class RF24NetworkPlugin(BasePlugin):
                     room_id=room.id,
                     plugin_id=plugin_id,
                     config=config,
-                    state=state,
+                    state={**state, "last_seen": datetime.now(timezone.utc).isoformat()},
                     is_visible=True,
                 )
                 db.add(device)

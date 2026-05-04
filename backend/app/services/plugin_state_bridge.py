@@ -21,6 +21,7 @@ Usage from any push-based plugin:
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict
 
 from sqlalchemy import select
@@ -115,11 +116,12 @@ async def push_state_update(
                 return 0
 
             # 3. Merge state and mark dirty
+            now = datetime.now(timezone.utc).isoformat()
             for device in matched_devices:
                 if merge:
-                    device.state = {**(device.state or {}), **new_state}
+                    device.state = {**(device.state or {}), **new_state, "last_seen": now}
                 else:
-                    device.state = dict(new_state)
+                    device.state = {**dict(new_state), "last_seen": now}
 
             await db.commit()
             updated_count = len(matched_devices)
