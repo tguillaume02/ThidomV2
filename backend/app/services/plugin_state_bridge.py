@@ -47,17 +47,19 @@ async def _schedule_auto_off(device_id: int, delay_seconds: int):
         if not device:
             return
         state = device.state or {}
-        is_on = state.get("on", state.get("power", state.get("active", False)))
+        power = state.get("power", state.get("on", state.get("active", False)))
+        is_on = power == "on" or power is True
         if not is_on:
             return
-        off_state = {**(device.state or {}), "on": False, "power": False}
+        # Turn off via plugin (sends actual command to device)
+        off_state = {**(device.state or {}), "power": "off"}
         plugin_result = await db.execute(select(Plugin).where(Plugin.id == device.plugin_id))
         plugin_model = plugin_result.scalar_one_or_none()
         if plugin_model:
             plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
             if plugin_instance:
-                off_state = await plugin_instance.set_state(device.config or {}, {"on": False})
-        device.state = off_state
+                off_state = await plugin_instance.set_state(device.config or {}, {"power": "off"})
+        device.state = {**(device.state or {}), **off_state}
         await db.commit()
         await manager.broadcast_device_state(device.id, device.state)
 
@@ -204,7 +206,8 @@ async def push_state_update(
 
                 # Auto-off timer
                 if device.auto_off_delay and device.auto_off_delay > 0:
-                    is_on = new_state.get("on", new_state.get("power", new_state.get("active")))
+                    power_val = new_state.get("power", new_state.get("on", new_state.get("active")))
+                    is_on = power_val in (True, "on", "ON", 1, "1")
                     if is_on:
                         import asyncio
                         asyncio.ensure_future(_schedule_auto_off(device.id, device.auto_off_delay))

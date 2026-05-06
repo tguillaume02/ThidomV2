@@ -279,14 +279,28 @@ class AlertApp:
 
     def _play_alert_sound(self):
         freq=int(self.config.get("alert_frequency",1000)); dur=int(self.config.get("alert_duration_ms",500)); rep=int(self.config.get("alert_repeat_ms",2000))
-        while self.alerting: winsound.Beep(freq,dur); time.sleep(rep/1000.0)
+        while self.alerting:
+            winsound.Beep(freq, dur)
+            # Use short sleep intervals to allow quick stop
+            elapsed = 0
+            while elapsed < rep and self.alerting:
+                time.sleep(0.1)
+                elapsed += 100
 
     def _stop_alert(self):
-        self.alerting=False; self.device_label.config(text=""); self.stop_button.config(state=tk.DISABLED); self.status_label.config(text="Connecte - En ecoute")
+        if not self.alerting and not self.alert_device_id:
+            return
+        self.alerting=False
+        self.root.after(0, lambda: self.device_label.config(text=""))
+        self.root.after(0, lambda: self.stop_button.config(state=tk.DISABLED))
+        self.root.after(0, lambda: self.status_label.config(text="Connecte - En ecoute"))
         if self.tray_icon: self.tray_icon.icon = self._create_tray_image(alert=False)
-        if self.alert_device_id: self._turn_off_device(self.alert_device_id); self.alert_device_id=None
+        device_id = self.alert_device_id
+        self.alert_device_id = None
+        if device_id:
+            threading.Thread(target=self._turn_off_device, args=(device_id,), daemon=True).start()
         # Fermer la fenetre (retour au tray)
-        self.root.after(500, self._hide_to_tray)
+        self.root.after(1000, self._hide_to_tray)
 
     def _turn_off_device(self,device_id):
         try:
