@@ -63,6 +63,8 @@ export class DeviceDialogComponent implements OnInit {
     { value: 'light', label: 'Lumière', icon: 'lightbulb' },
     { value: 'switch', label: 'Interrupteur', icon: 'toggle_on' },
     { value: 'sensor', label: 'Capteur', icon: 'sensors' },
+    { value: 'motion', label: 'Détecteur de mouvement', icon: 'motion_sensor_active' },
+    { value: 'relay', label: 'Relais', icon: 'electrical_services' },
     { value: 'thermostat', label: 'Thermostat', icon: 'thermostat' },
     { value: 'cover', label: 'Volet', icon: 'blinds' },
     { value: 'lock', label: 'Serrure', icon: 'lock' },

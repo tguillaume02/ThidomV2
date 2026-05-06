@@ -82,7 +82,7 @@ WIDGET_DEVICE_TYPE = {
     "1": "switch",
     "2": "light",
     "3": "light",
-    "4": "sensor",
+    "4": "motion",
     "5": "thermostat",
     "6": "sensor",
     "7": "sensor",
