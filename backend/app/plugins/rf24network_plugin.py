@@ -545,9 +545,6 @@ class RF24NetworkPlugin(BasePlugin):
     async def set_state(self, device_config, state):
         wid = device_config.get("widget_id", "1")
 
-        if wid in SENSOR_WIDGET_IDS:
-            return await self.get_state(device_config)
-
         power = state.get("power", "off")
         etat = "1" if power == "on" else "0"
 
@@ -563,13 +560,20 @@ class RF24NetworkPlugin(BasePlugin):
         await self._send_command(device_config, value, etat)
 
         key = self._device_cache_key(device_config)
-        new_state = _build_state_from_parsed({
-            "widget_id": wid,
-            "value": value,
-            "state": etat,
-        })
-        self._state_cache[key] = new_state
-        return new_state
+        if wid in SENSOR_WIDGET_IDS:
+            # Sensors: merge requested state into cache (keep sensor values)
+            current = self._state_cache.get(key) or await self.get_state(device_config)
+            merged = {**current, **state}
+            self._state_cache[key] = merged
+            return merged
+        else:
+            new_state = _build_state_from_parsed({
+                "widget_id": wid,
+                "value": value,
+                "state": etat,
+            })
+            self._state_cache[key] = new_state
+            return new_state
 
     async def execute_action(self, device_config, action, params=None):
         wid = device_config.get("widget_id", "1")

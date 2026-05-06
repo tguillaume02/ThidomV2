@@ -279,7 +279,8 @@ async def update_device_state(
         plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
         if plugin_instance:
             new_state = await plugin_instance.set_state(device.config or {}, state_data.state)
-            device.state = new_state
+            # Merge plugin result into existing state (preserve fields like voltage, battery)
+            device.state = {**(device.state or {}), **new_state}
         else:
             device.state = {**(device.state or {}), **state_data.state}
     else:
@@ -308,7 +309,8 @@ async def update_device_state(
 
     # Auto-off timer: schedule turn-off after configured delay
     if device.auto_off_delay and device.auto_off_delay > 0:
-        is_on = state_data.state.get("on", state_data.state.get("power", state_data.state.get("active")))
+        power_val = state_data.state.get("power", state_data.state.get("on", state_data.state.get("active")))
+        is_on = power_val in (True, "on", "ON", 1, "1")
         if is_on:
             background_tasks.add_task(_auto_off_device, device.id, device.auto_off_delay)
 
