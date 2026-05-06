@@ -72,14 +72,14 @@
         @if (field.enum) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ field.label }}</mat-label>
+            @if (field.description) {
+              <mat-hint>{{ field.description }}</mat-hint>
+            }
             <mat-select [(ngModel)]="config[field.key]">
               @for (opt of field.enum; track opt) {
                 <mat-option [value]="opt">{{ opt }}</mat-option>
               }
             </mat-select>
-            @if (field.description) {
-              <mat-hint>{{ field.description }}</mat-hint>
-            }
           </mat-form-field>
         } @else if (field.type === 'boolean') {
           <div class="config-toggle-row">
@@ -167,7 +167,7 @@
   </div>
 
   <!-- Auto-off delay -->
-  @if (deviceType !== 'sensor' && deviceType !== 'variable') {
+  @if (deviceType === 'relay' || deviceType === 'motion') {
     <div class="config-section">
       <h3>Extinction automatique</h3>
       <mat-form-field appearance="outline" class="full-width">
