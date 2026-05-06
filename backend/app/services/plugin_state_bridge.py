@@ -37,31 +37,52 @@ logger = logging.getLogger(__name__)
 
 
 async def _schedule_auto_off(device_id: int, delay_seconds: int):
-    """Wait then turn off a device (auto-off timer)."""
+    """Wait then turn off a device (auto-off timer).
+    Cancels any previous pending timer for the same device."""
     import asyncio
     from app.plugins.registry import PluginRegistry
-    await asyncio.sleep(delay_seconds)
-    async with async_session() as db:
-        result = await db.execute(select(Device).where(Device.id == device_id))
-        device = result.scalar_one_or_none()
-        if not device:
+
+    # Cancel previous timer for this device if any
+    prev = _auto_off_tasks.get(device_id)
+    if prev and not prev.done():
+        prev.cancel()
+
+    async def _do_auto_off():
+        try:
+            await asyncio.sleep(delay_seconds)
+        except asyncio.CancelledError:
             return
-        state = device.state or {}
-        power = state.get("power", state.get("on", state.get("active", False)))
-        is_on = power == "on" or power is True
-        if not is_on:
-            return
-        # Turn off via plugin (sends actual command to device)
-        off_state = {**(device.state or {}), "power": "off"}
-        plugin_result = await db.execute(select(Plugin).where(Plugin.id == device.plugin_id))
-        plugin_model = plugin_result.scalar_one_or_none()
-        if plugin_model:
-            plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
-            if plugin_instance:
-                off_state = await plugin_instance.set_state(device.config or {}, {"power": "off"})
-        device.state = {**(device.state or {}), **off_state}
-        await db.commit()
-        await manager.broadcast_device_state(device.id, device.state)
+        finally:
+            _auto_off_tasks.pop(device_id, None)
+
+        async with async_session() as db:
+            result = await db.execute(select(Device).where(Device.id == device_id))
+            device = result.scalar_one_or_none()
+            if not device:
+                return
+            state = device.state or {}
+            power = state.get("power", state.get("on", state.get("active", False)))
+            is_on = power == "on" or power is True
+            if not is_on:
+                return
+            # Turn off via plugin (sends actual command to device)
+            off_state = {**(device.state or {}), "power": "off"}
+            plugin_result = await db.execute(select(Plugin).where(Plugin.id == device.plugin_id))
+            plugin_model = plugin_result.scalar_one_or_none()
+            if plugin_model:
+                plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
+                if plugin_instance:
+                    off_state = await plugin_instance.set_state(device.config or {}, {"power": "off"})
+            device.state = {**(device.state or {}), **off_state}
+            await db.commit()
+            await manager.broadcast_device_state(device.id, device.state)
+
+    task = asyncio.ensure_future(_do_auto_off())
+    _auto_off_tasks[device_id] = task
+
+
+# Track pending auto-off tasks per device (prevents stacking)
+_auto_off_tasks: dict[int, "asyncio.Task"] = {}
 
 
 # Lazy-loaded thermostat helpers (avoid circular import at module level)
@@ -209,8 +230,13 @@ async def push_state_update(
                     power_val = new_state.get("power", new_state.get("on", new_state.get("active")))
                     is_on = power_val in (True, "on", "ON", 1, "1")
                     if is_on:
-                        import asyncio
-                        asyncio.ensure_future(_schedule_auto_off(device.id, device.auto_off_delay))
+                        await _schedule_auto_off(device.id, device.auto_off_delay)
+                    else:
+                        # Device turned off → cancel pending auto-off timer
+                        prev = _auto_off_tasks.get(device.id)
+                        if prev and not prev.done():
+                            prev.cancel()
+                            _auto_off_tasks.pop(device.id, None)
 
     except Exception:
         logger.exception("push_state_update failed for plugin '%s'", plugin_slug)
