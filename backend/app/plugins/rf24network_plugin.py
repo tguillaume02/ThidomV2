@@ -82,7 +82,7 @@ WIDGET_DEVICE_TYPE = {
     "1": "switch",
     "2": "light",
     "3": "light",
-    "4": "motion",
+    "4": "sensor",
     "5": "thermostat",
     "6": "sensor",
     "7": "sensor",
@@ -287,7 +287,7 @@ class RF24NetworkPlugin(BasePlugin):
 
     @classmethod
     def get_device_types(cls):
-        return ["switch", "light", "sensor", "thermostat"]
+        return ["relay", "light", "sensor", "motion", "thermostat", "switch"]
 
     # ------------------------------------------------------------------
     # Hub lifecycle
