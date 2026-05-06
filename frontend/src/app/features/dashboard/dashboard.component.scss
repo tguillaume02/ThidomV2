@@ -119,6 +119,23 @@
     animation: pulse-alert 2s infinite;
   }
 
+  &.device-motion {
+    border-color: rgba(255, 152, 0, 0.6) !important;
+    box-shadow: 0 0 14px rgba(255, 152, 0, 0.15) !important;
+    animation: pulse-motion 1.5s infinite;
+
+    .device-icon-wrapper {
+      background: rgba(255, 152, 0, 0.15) !important;
+      color: #ff9800 !important;
+      animation: shake-motion 0.6s ease-in-out infinite alternate;
+    }
+
+    .state-value {
+      color: #ff9800 !important;
+      font-weight: 600;
+    }
+  }
+
   .device-header {
     display: flex;
     align-items: center;
@@ -745,6 +762,16 @@
 @keyframes pulse-alert {
   0%, 100% { box-shadow: 0 0 6px rgba(244, 67, 54, 0.12); }
   50% { box-shadow: 0 0 16px rgba(244, 67, 54, 0.25); }
+}
+
+@keyframes pulse-motion {
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 152, 0, 0.1); border-color: rgba(255, 152, 0, 0.4); }
+  50% { box-shadow: 0 0 18px rgba(255, 152, 0, 0.3); border-color: rgba(255, 152, 0, 0.7); }
+}
+
+@keyframes shake-motion {
+  0% { transform: translateX(-1px) rotate(-2deg); }
+  100% { transform: translateX(1px) rotate(2deg); }
 }
 
 @keyframes pulse-heat {

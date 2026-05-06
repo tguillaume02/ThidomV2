@@ -82,7 +82,7 @@
               }
             </div>
           } @else {
-            <div class="device-card thidom-card" [class.device-on]="isDeviceOn(device)" [class.device-alert]="device.state?.smoke === true" [class.device-camera]="isCamera(device)">
+            <div class="device-card thidom-card" [class.device-on]="isDeviceOn(device)" [class.device-alert]="device.state?.smoke === true" [class.device-motion]="device.state?.occupancy === true" [class.device-camera]="isCamera(device)">
               <div class="device-header">
                 <div class="device-icon-wrapper" [class.on]="isDeviceOn(device)"><mat-icon>{{ getDeviceIcon(device) }}</mat-icon></div>
                 <div class="device-info"><span class="device-name">{{ device.name }}</span></div>

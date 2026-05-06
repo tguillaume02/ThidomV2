@@ -72,7 +72,7 @@ async def _schedule_auto_off(device_id: int, delay_seconds: int):
             if plugin_model:
                 plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
                 if plugin_instance:
-                    off_state = await plugin_instance.set_state(device.config or {}, {"power": "off"})
+                    off_state = await plugin_instance.set_state(device.config or {}, {"power": "off", "occupancy": False})
             device.state = {**(device.state or {}), **off_state}
             await db.commit()
             await manager.broadcast_device_state(device.id, device.state)
