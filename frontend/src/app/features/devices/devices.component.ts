@@ -207,6 +207,7 @@ export class DevicesComponent implements OnInit, OnDestroy {
   getStateText(device: Device): string {
     const s = device.state || {};
 
+    if (s.occupancy !== undefined) return s.occupancy ? 'Mouvement detecte' : 'Aucun mouvement';
     if (s.temperature !== undefined) return `${s.temperature}°C`;
     if (s.humidity !== undefined) return `${s.humidity}%`;
     if (s.value !== undefined) {

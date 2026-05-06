@@ -286,6 +286,10 @@ async def update_device_state(
     else:
         device.state = {**(device.state or {}), **state_data.state}
 
+    # Always update last_seen timestamp
+    from datetime import datetime, timezone
+    device.state = {**(device.state or {}), "last_seen": datetime.now(timezone.utc).isoformat()}
+
     await db.commit()
     await db.refresh(device)
 

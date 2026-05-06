@@ -270,6 +270,16 @@ class AlertApp:
             self.alerting=True; self.alert_device_id=device_id
             self._log(f"ALERTE: Appareil #{device_id} active!"); self.root.after(0,self._show_alert,device_id)
             threading.Thread(target=self._play_alert_sound,daemon=True).start()
+        elif not is_on and self.alerting:
+            # L'appareil est passé à off (auto-off ou autre) → arrêter l'alerte automatiquement
+            self._log(f"Appareil #{device_id} eteint (via WS). Arret de l'alerte.")
+            self.alerting = False
+            self.alert_device_id = None
+            self.root.after(0, lambda: self.device_label.config(text=""))
+            self.root.after(0, lambda: self.stop_button.config(state=tk.DISABLED))
+            self.root.after(0, lambda: self.status_label.config(text="Connecte - En ecoute"))
+            if self.tray_icon: self.tray_icon.icon = self._create_tray_image(alert=False)
+            self.root.after(1000, self._hide_to_tray)
 
     def _show_alert(self,device_id):
         name = getattr(self, 'device_name', f'Appareil #{device_id}')
