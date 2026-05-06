@@ -5,7 +5,7 @@ lorsqu un appareil surveille est active.
 Fonctionne en arriere-plan dans la zone de notification (system tray).
 Compilable: pyinstaller --onefile --noconsole --name ThiDomAlert main.py
 """
-import threading, json, time, os, sys, base64, hashlib, ssl
+import threading, json, time, os, sys, base64, hashlib, ssl, stat
 import tkinter as tk
 from tkinter import ttk
 import winsound, requests, websocket
@@ -13,8 +13,6 @@ from cryptography.fernet import Fernet
 import ctypes, ctypes.wintypes
 import pystray
 from PIL import Image, ImageDraw
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_config_path():
     appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
@@ -62,7 +60,7 @@ def _get_fernet_key() -> bytes:
 
 def load_config():
     path = get_config_path()
-    defaults = {"backend_url":"http://localhost:8000","ws_url":"ws://localhost:8000/ThiDom/api/ws/live","username":"","password":"","device_id":"","alert_frequency":1000,"alert_duration_ms":500,"alert_repeat_ms":2000}
+    defaults = {"backend_url":"http://localhost:8000","ws_url":"ws://localhost:8000/ThiDom/api/ws/live","username":"","password":"","device_id":"","alert_frequency":1000,"alert_duration_ms":500,"alert_repeat_ms":2000,"verify_ssl":False}
     if os.path.exists(path):
         try:
             key = _get_fernet_key()
@@ -83,13 +81,18 @@ def save_config(cfg):
     data = json.dumps(cfg, indent=2, ensure_ascii=False).encode("utf-8")
     encrypted = fernet.encrypt(data)
     with open(path, "wb") as f: f.write(encrypted)
+    # Restreindre les permissions au proprietaire uniquement
+    try:
+        os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+    except OSError:
+        pass
 
 class SettingsWindow:
     def __init__(self, parent, config, on_save):
         self.win=tk.Toplevel(parent); self.win.title("Configuration"); self.win.geometry("420x400"); self.win.grab_set()
         self.config=config; self.on_save=on_save
         frame=ttk.Frame(self.win,padding=15); frame.pack(fill=tk.BOTH,expand=True)
-        fields=[("URL du backend","backend_url"),("URL WebSocket","ws_url"),("Utilisateur","username"),("Mot de passe","password"),("ID appareil a surveiller","device_id"),("Frequence alerte (Hz)","alert_frequency"),("Duree bip (ms)","alert_duration_ms"),("Intervalle bip (ms)","alert_repeat_ms")]
+        fields=[("URL du backend","backend_url"),("URL WebSocket","ws_url"),("Utilisateur","username"),("Mot de passe","password"),("ID appareil a surveiller","device_id"),("Frequence alerte (Hz)","alert_frequency"),("Duree bip (ms)","alert_duration_ms"),("Intervalle bip (ms)","alert_repeat_ms"),("Verifier SSL (True/False)","verify_ssl")]
         self.entries={}
         for lbl,key in fields:
             ttk.Label(frame,text=lbl).pack(anchor=tk.W,pady=(4,0))
@@ -103,6 +106,8 @@ class SettingsWindow:
             if key in ("alert_frequency","alert_duration_ms","alert_repeat_ms"):
                 try: val=int(val)
                 except: val=1000
+            elif key == "verify_ssl":
+                val = val.lower() in ("true", "1", "yes", "oui")
             self.config[key]=val
         save_config(self.config); self.on_save(self.config); self.win.destroy()
 
@@ -191,7 +196,7 @@ class AlertApp:
         try:
             headers = {}
             if self.token: headers["Authorization"] = f"Bearer {self.token}"
-            r = requests.get(f"{self.config['backend_url']}/ThiDom/api/devices/{did}", headers=headers, timeout=5, verify=False)
+            r = requests.get(f"{self.config['backend_url']}/ThiDom/api/devices/{did}", headers=headers, timeout=5, verify=self.config.get('verify_ssl', False))
             if r.ok:
                 data = r.json()
                 self.device_name = data.get("name", f"Appareil #{did}")
@@ -211,12 +216,13 @@ class AlertApp:
         u=self.config.get("username","")
         if not u: return
         try:
-            r=requests.post(f"{self.config['backend_url']}/ThiDom/api/auth/login",json={"username":u,"password":self.config.get("password","")},timeout=5,verify=False)
+            r=requests.post(f"{self.config['backend_url']}/ThiDom/api/auth/login",json={"username":u,"password":self.config.get("password","")},timeout=5,verify=self.config.get('verify_ssl', False))
             if r.ok: self.token=r.json().get("access_token"); self._log("Auth OK")
             else: self._log(f"Auth echouee: {r.status_code}")
         except Exception as e: self._log(f"Erreur auth: {e}")
 
     def _ws_loop(self):
+        backoff = 5
         while True:
             try:
                 url=self.config.get("ws_url","")
@@ -230,16 +236,24 @@ class AlertApp:
                     from urllib.parse import urlparse
                     parsed = urlparse(backend_url)
                     headers["Origin"] = f"{parsed.scheme}://{parsed.netloc}"
+                ssl_opts = {"cert_reqs": ssl.CERT_REQUIRED, "check_hostname": True} if self.config.get('verify_ssl', False) else {"cert_reqs": ssl.CERT_NONE}
                 self.ws=websocket.WebSocketApp(url, header=headers, on_open=self._on_ws_open,on_message=self._on_ws_message,on_error=self._on_ws_error,on_close=self._on_ws_close)
-                self.ws.run_forever(ping_interval=30, suppress_origin=True, sslopt={"cert_reqs": ssl.CERT_NONE})
+                self.ws.run_forever(ping_interval=30, suppress_origin=True, sslopt=ssl_opts)
+                backoff = 5  # Reset on clean disconnect
             except Exception as e: self._log(f"WS erreur: {e}")
-            time.sleep(5)
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 60)  # Backoff exponentiel, max 60s
 
     def _on_ws_open(self,ws): self._log("WebSocket connecte"); self.root.after(0,lambda:self.status_label.config(text="Connecte - En ecoute"))
     def _on_ws_message(self,ws,message):
         try: data=json.loads(message)
-        except: return
-        if data.get("type")=="device_state_update": self._handle_device_state(data.get("device_id"),data.get("state",{}))
+        except (json.JSONDecodeError, TypeError): return
+        if not isinstance(data, dict): return
+        if data.get("type")=="device_state_update":
+            device_id = data.get("device_id")
+            state = data.get("state", {})
+            if isinstance(device_id, int) and isinstance(state, dict):
+                self._handle_device_state(device_id, state)
     def _on_ws_error(self,ws,error): self._log(f"WS erreur: {error}")
     def _on_ws_close(self,ws,*a): self._log("WS deconnecte"); self.root.after(0,lambda:self.status_label.config(text="Deconnecte - Reconnexion..."))
 
@@ -278,7 +292,7 @@ class AlertApp:
         try:
             headers={}
             if self.token: headers["Authorization"]=f"Bearer {self.token}"
-            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"power":"off","on":False}},headers=headers,timeout=5,verify=False)
+            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"power":"off","on":False}},headers=headers,timeout=5,verify=self.config.get('verify_ssl', False))
             if r.ok: self._log(f"Appareil #{device_id} eteint.")
             else: self._log(f"Erreur extinction: {r.status_code}")
         except Exception as e: self._log(f"Erreur: {e}")
