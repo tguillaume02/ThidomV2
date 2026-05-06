@@ -265,10 +265,10 @@ class AlertApp:
         if device_id!=target: return
         # Detecter power="on" (string) ou power=True ou on=True
         power_val = state.get("power", state.get("on", state.get("active", False)))
-        occupency_val = state.get("occupency", state.get("occupancy", False))
+        occupancy_val = state.get("occupancy", state.get("occupancy", False))
         is_on = power_val in (True, "on", "ON", 1, "1", "true")
-        is_occupency = occupency_val in (True, "occupied", "OCCUPIED", 1, "1", "true")
-        if (is_on or is_occupency) and not self.alerting:
+        is_occupancy = occupancy_val in (True, "occupied", "OCCUPIED", 1, "1", "true")
+        if (is_on and is_occupancy) and not self.alerting:
             self.alerting=True; self.alert_device_id=device_id
             self._log(f"ALERTE: Appareil #{device_id} active!"); self.root.after(0,self._show_alert,device_id)
             threading.Thread(target=self._play_alert_sound,daemon=True).start()
@@ -318,7 +318,7 @@ class AlertApp:
         try:
             headers={}
             if self.token: headers["Authorization"]=f"Bearer {self.token}"
-            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"power":"off","on":False, "occupency": "off"}},headers=headers,timeout=5,verify=self.config.get('verify_ssl', False))
+            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"power":"off","on":False, "occupancy": False}},headers=headers,timeout=5,verify=self.config.get('verify_ssl', False))
             if r.ok: self._log(f"Appareil #{device_id} eteint.")
             else: self._log(f"Erreur extinction: {r.status_code}")
         except Exception as e: self._log(f"Erreur: {e}")
