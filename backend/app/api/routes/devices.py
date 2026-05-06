@@ -68,6 +68,16 @@ async def _auto_off_device(device_id: int, delay_seconds: int):
         device = result.scalar_one_or_none()
         if not device:
             return
+
+        # For motion sensors: only reset occupancy (no physical command)
+        if device.device_type in ("motion", "sensor") and (device.state or {}).get("occupancy") is not None:
+            if (device.state or {}).get("occupancy") in (False, 0, "0"):
+                return  # Already no occupancy
+            device.state = {**(device.state or {}), "occupancy": False}
+            await db.commit()
+            await manager.broadcast_device_state(device.id, device.state)
+            return
+
         state = device.state or {}
         power = state.get("power", state.get("on", state.get("active", False)))
         is_on = power == "on" or power is True
@@ -80,7 +90,7 @@ async def _auto_off_device(device_id: int, delay_seconds: int):
         if plugin_model:
             plugin_instance = await PluginRegistry.get_instance(plugin_model.slug)
             if plugin_instance:
-                off_state = await plugin_instance.set_state(device.config or {}, {"power": "off", "occupancy": False})
+                off_state = await plugin_instance.set_state(device.config or {}, {"power": "off"})
         device.state = {**(device.state or {}), **off_state}
         await db.commit()
         await manager.broadcast_device_state(device.id, device.state)
@@ -313,9 +323,13 @@ async def update_device_state(
 
     # Auto-off timer: schedule turn-off after configured delay
     if device.auto_off_delay and device.auto_off_delay > 0:
-        power_val = state_data.state.get("power", state_data.state.get("on", state_data.state.get("active")))
-        is_on = power_val in (True, "on", "ON", 1, "1")
-        if is_on:
+        # For motion sensors, trigger on occupancy, not power
+        if device.device_type in ("motion", "sensor") and "occupancy" in state_data.state:
+            is_active = state_data.state["occupancy"] in (True, 1, "1")
+        else:
+            power_val = state_data.state.get("power", state_data.state.get("on", state_data.state.get("active")))
+            is_active = power_val in (True, "on", "ON", 1, "1")
+        if is_active:
             background_tasks.add_task(_auto_off_device, device.id, device.auto_off_delay)
 
     return device

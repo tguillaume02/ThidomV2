@@ -263,18 +263,23 @@ class AlertApp:
         try: target=int(target)
         except: return
         if device_id!=target: return
-        # Detecter power="on" (string) ou power=True ou on=True
+        # Detecter activation: power="on" + occupancy=true pour motion sensors
         power_val = state.get("power", state.get("on", state.get("active", False)))
-        occupancy_val = state.get("occupancy", state.get("occupancy", False))
+        occupancy_val = state.get("occupancy", None)
         is_on = power_val in (True, "on", "ON", 1, "1", "true")
-        is_occupancy = occupancy_val in (True, "occupied", "OCCUPIED", 1, "1", "true")
-        if (is_on and is_occupancy) and not self.alerting:
+        is_occupancy = occupancy_val in (True, 1, "1")
+        # Trigger: occupancy detected (for motion) or power on (for relay/switch)
+        if occupancy_val is not None:
+            is_active = is_occupancy
+        else:
+            is_active = is_on
+        if is_active and not self.alerting:
             self.alerting=True; self.alert_device_id=device_id
             self._log(f"ALERTE: Appareil #{device_id} active!"); self.root.after(0,self._show_alert,device_id)
             threading.Thread(target=self._play_alert_sound,daemon=True).start()
-        elif not is_on and self.alerting:
-            # L'appareil est passé à off (auto-off ou autre) → arrêter l'alerte automatiquement
-            self._log(f"Appareil #{device_id} eteint (via WS). Arret de l'alerte.")
+        elif not is_active and self.alerting:
+            # L'appareil est passe a off / plus de mouvement
+            self._log(f"Appareil #{device_id} inactif (via WS). Arret de l'alerte.")
             self.alerting = False
             self.alert_device_id = None
             self.root.after(0, lambda: self.device_label.config(text=""))
@@ -318,9 +323,9 @@ class AlertApp:
         try:
             headers={}
             if self.token: headers["Authorization"]=f"Bearer {self.token}"
-            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"power":"off","on":False, "occupancy": False}},headers=headers,timeout=5,verify=self.config.get('verify_ssl', False))
-            if r.ok: self._log(f"Appareil #{device_id} eteint.")
-            else: self._log(f"Erreur extinction: {r.status_code}")
+            r=requests.put(f"{self.config['backend_url']}/ThiDom/api/devices/{device_id}/state",json={"state":{"occupancy": False}},headers=headers,timeout=5,verify=self.config.get('verify_ssl', False))
+            if r.ok: self._log(f"Appareil #{device_id} desactive.")
+            else: self._log(f"Erreur desactivation: {r.status_code}")
         except Exception as e: self._log(f"Erreur: {e}")
 
     def _on_close(self):

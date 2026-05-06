@@ -60,6 +60,16 @@ async def _schedule_auto_off(device_id: int, delay_seconds: int):
             device = result.scalar_one_or_none()
             if not device:
                 return
+
+            # For motion sensors: only reset occupancy (don't send power off to a sensor)
+            if device.device_type in ("motion", "sensor") and (device.state or {}).get("occupancy") is not None:
+                if (device.state or {}).get("occupancy") in (False, 0, "0"):
+                    return  # Already no occupancy
+                device.state = {**(device.state or {}), "occupancy": False}
+                await db.commit()
+                await manager.broadcast_device_state(device.id, device.state)
+                return
+
             state = device.state or {}
             power = state.get("power", state.get("on", state.get("active", False)))
             is_on = power == "on" or power is True
@@ -227,12 +237,16 @@ async def push_state_update(
 
                 # Auto-off timer
                 if device.auto_off_delay and device.auto_off_delay > 0:
-                    power_val = new_state.get("power", new_state.get("on", new_state.get("active")))
-                    is_on = power_val in (True, "on", "ON", 1, "1")
-                    if is_on:
+                    # For motion sensors, use occupancy as trigger (power is always "on")
+                    if device.device_type in ("motion", "sensor") and "occupancy" in new_state:
+                        is_active = new_state["occupancy"] in (True, 1, "1")
+                    else:
+                        power_val = new_state.get("power", new_state.get("on", new_state.get("active")))
+                        is_active = power_val in (True, "on", "ON", 1, "1")
+                    if is_active:
                         await _schedule_auto_off(device.id, device.auto_off_delay)
                     else:
-                        # Device turned off → cancel pending auto-off timer
+                        # Device turned off / no occupancy → cancel pending auto-off timer
                         prev = _auto_off_tasks.get(device.id)
                         if prev and not prev.done():
                             prev.cancel()
